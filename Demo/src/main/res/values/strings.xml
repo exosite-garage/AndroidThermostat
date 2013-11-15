@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Exosite</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="temperature_label">Temperature</string>
+    <string name="led_label">LED6</string>
+    <string name="cik">Device CIK</string>
+    <array name="spinnerItems">
+        <item>0 - off</item>
+        <item>1 - one blink per second</item>
+        <item>2 - two blinks per second</item>
+        <item>3 - three blinks per second</item>
+        <item>4 - four blinks per second</item>
+        <item>5 - solid on</item>
+    </array>
+    <string name="title_activity_settings">Settings</string>
+    <string name="version">Version</string>
+</resources>

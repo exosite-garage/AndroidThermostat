@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="version"
+        android:title="@string/version"
+        android:summary="0.6"/>
+    <EditTextPreference
+        android:key="cik"
+        android:title="@string/cik"
+        android:defaultValue="" />
+    <CheckBoxPreference
+        android:key="action_color"
+        android:title="Show heating/cooling colors"
+        android:defaultValue="true"/>
+    <EditTextPreference
+        android:key="logo_url"
+        android:title="URL of logo (691x135 PNG)"
+        android:defaultValue=" "/>
+</PreferenceScreen>
