@@ -14,7 +14,7 @@ dataports:
       format: float
 ```
 
-Once you have a CIK with the dataports specified above, enter that CIK in the App under Settings->Device CIK.
+Once you have a CIK with the dataports specified above, enter that CIK in the App under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports. 
 
 To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects. 
 
@@ -35,6 +35,10 @@ http://developer.android.com/sdk/installing/studio.html
 
 5.) In Android Studio, select Build->Make Project
 
+6.) Select Run->Run Demo
+
+7.) Select your Android device. If you don't see your device, you may need to unplug it and plug it back in.
+
 ### Known Issues
 
 
@@ -46,4 +50,3 @@ http://developer.android.com/sdk/installing/studio.html
 4.) In preferences.xml, change `android:defaultValue="cb8d10a48650f62f6d56b01..."` to `android:defaultValue=DEFAULT_CIK`
 5.) Commit and push in git
 6.) Tag with version number and push that too
-
