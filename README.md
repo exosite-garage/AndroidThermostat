@@ -25,13 +25,17 @@ To revert to the Exosite logo, change the URL in settings to an empty string and
 This application was built using Android Studio version 0.3.2.
 http://developer.android.com/sdk/installing/studio.html
 
-1.) Clone the source (`git clone git@github.com:exosite-garage/AndroidDemo.git`)
+1.) Clone the source
+
+```
+$ git clone git@github.com:exosite-garage/AndroidDemo.git DemoProject
+```
 
 2.) Set up an Android device for development over USB (enable developer options, enable USB debugging)
 
 3.) Set up PC for debugging (this varies by platform, see http://developer.android.com/tools/device.html)
 
-4.) Open the project with Android Studio
+4.) Open the project with Android Studio (the `DemoProject` folder)
 
 5.) In Android Studio, select Build->Make Project
 
