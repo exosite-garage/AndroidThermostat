@@ -37,7 +37,7 @@ public class SettingsActivity extends PreferenceActivity {
      * as a master/detail two-pane view on tablets. When true, a single pane is
      * shown on tablets.
      */
-    private static final boolean ALWAYS_SIMPLE_PREFS = false;
+    private static final boolean ALWAYS_SIMPLE_PREFS = true;
 
     public static final String KEY_PREF_DEVICE_CIK = "cik";
     public static final String KEY_PREF_ACTION_COLOR = "action_color";

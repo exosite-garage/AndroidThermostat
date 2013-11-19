@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/AndroidExample.iml" filepath="$PROJECT_DIR$/AndroidExample.iml" />
       <module fileurl="file://$PROJECT_DIR$/Demo/Demo.iml" filepath="$PROJECT_DIR$/Demo/Demo.iml" />
       <module fileurl="file://$PROJECT_DIR$/DemoProject.iml" filepath="$PROJECT_DIR$/DemoProject.iml" />
+      <module fileurl="file://$PROJECT_DIR$/OnePlatformRPC/OnePlatformRPC.iml" filepath="$PROJECT_DIR$/OnePlatformRPC/OnePlatformRPC.iml" />
     </modules>
   </component>
 </project>
