@@ -49,8 +49,13 @@ $ git clone git@github.com:exosite-garage/AndroidDemo.git DemoProject
 ### Release Guide
 
 1.) Test (incl. in airplane mode and with incorrect CIK)
+
 2.) Update version number in preferences.xml and AndroidManifest.xml
+
 3.) Build -> Generate Signed APK 
+
 4.) In preferences.xml, change `android:defaultValue="cb8d10a48650f62f6d56b01..."` to `android:defaultValue=DEFAULT_CIK`
+
 5.) Commit and push in git
+
 6.) Tag with version number and push that too
