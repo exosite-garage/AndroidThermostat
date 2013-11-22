@@ -4,6 +4,7 @@ package com.exosite.demo;
  * Device model.
  */
 public class Device {
+
     public Device() {
         mTemperature = null;
         mSetpoint = null;
@@ -42,5 +43,18 @@ public class Device {
         setSetpoint(new Double(Math.round((percent / 100.0) * (SETPOINT_HIGH - SETPOINT_LOW) + SETPOINT_LOW)));
     }
     private Double mSetpoint;
+
+    public Integer getSwitch() {
+        return mSwitch;
+    }
+    public void setSwitchFromCloud(Integer value) {
+        if (!this.getWriteInProgress()) {
+            mSwitch = value;
+        }
+    }
+    public void setSwitchFromUI(Integer value) {
+        mSwitch = value;
+    }
+    private Integer mSwitch;
 
 }

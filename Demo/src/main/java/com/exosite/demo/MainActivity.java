@@ -19,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -162,6 +163,7 @@ public class MainActivity extends ActionBarActivity {
         TextView mTemperature;
         //Spinner mLed;
         SeekBar mSetpoint;
+        CompoundButton mSwitch;
         TextView mSetpointText;
         // heat and cool when temp is + or - TOLERANCE from setpoint
         double TOLERANCE = 1.0;
@@ -193,10 +195,20 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     mDevice.setWriteInProgress(true);
-                    new WriteTask().execute(String.valueOf(mDevice.getSetpoint()));
+                    new WriteTask().execute(ALIAS_SETPOINT, String.valueOf(mDevice.getSetpoint()));
                 }
             });
             mSetpointText = (TextView)rootView.findViewById(R.id.setpointText);
+
+            mSwitch = (CompoundButton)rootView.findViewById(R.id.switch_control);
+            mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    String value = b ? "1" : "0";
+                    mDevice.setWriteInProgress(true);
+                    new WriteTask().execute(ALIAS_SWITCH, value);
+                }
+            });
 
             // configure to update widgets from platform periodically
             mReadRunnable = new Runnable() {
@@ -262,6 +274,13 @@ public class MainActivity extends ActionBarActivity {
                 mSetpointText.setText(String.format("%.0f", setpoint) + "°");
             }
 
+            Integer switchState = mDevice.getSwitch();
+            if (switchState == null) {
+                mSwitch.setChecked(false);
+            } else {
+                mSwitch.setChecked(switchState != 0);
+            }
+
         }
 
         private boolean loadLogo(Context ctx) {
@@ -285,7 +304,6 @@ public class MainActivity extends ActionBarActivity {
         }
 
         protected void handleSettingsUpdate() {
-            boolean isError = true;
             View v = getView();
             if (v != null) {
                 Context ctx = v.getContext();
@@ -298,9 +316,13 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
+        private final String ALIAS_TEMP = "temp";
+        private final String ALIAS_SETPOINT = "setpoint";
+        private final String ALIAS_SWITCH = "switch";
+
         class ReadTask extends AsyncTask<Void, Integer, ArrayList<Result>> {
             private static final String TAG = "ReadTask";
-            private final String[] aliases = {"temp", "setpoint"};
+            private final String[] aliases = {ALIAS_TEMP, ALIAS_SETPOINT, ALIAS_SWITCH};
             private Exception exception;
             protected ArrayList<Result> doInBackground(Void... params) {
                 exception = null;
@@ -359,6 +381,7 @@ public class MainActivity extends ActionBarActivity {
                 if (results != null) {
                     for(int i = 0; i < results.size(); i++) {
                         Result result = results.get(i);
+                        String alias = aliases[i];
                         if (result.getResult() instanceof JSONArray) {
                             try {
                                 JSONArray points = ((JSONArray)result.getResult());
@@ -366,30 +389,34 @@ public class MainActivity extends ActionBarActivity {
                                     JSONArray point = points.getJSONArray(0);
                                     // this will break if results are out of order.
                                     // need to fix OnePlatformRPC.java
-                                    if (aliases[i] == "temp") {
+                                    if (alias == ALIAS_TEMP) {
                                         mDevice.setTemperature(point.getDouble(1));
-                                    } else if (aliases[i] == "setpoint") {
+                                    } else if (alias == ALIAS_SETPOINT) {
                                         // only set the setpoint once from a read
                                         if (mDevice.getSetpoint() == null) {
                                             mDevice.setSetpoint(point.getDouble(1));
                                         }
+                                    } else if (alias == ALIAS_SWITCH) {
+                                        mDevice.setSwitchFromCloud(point.getInt(1));
                                     }
                                 } else {
-                                    if (aliases[i] == "temp") {
+                                    hasError = true;
+                                    if (alias == ALIAS_TEMP) {
                                         mDevice.setTemperature(null);
                                         mDevice.setError("No temperature values.");
-                                        hasError = true;
-                                    } else if (aliases[i] == "setpoint") {
+                                    } else if (alias == ALIAS_SETPOINT) {
                                         mDevice.setSetpoint(null);
                                         mDevice.setError("No setpoint value");
-                                        hasError = true;
+                                    } else if (alias == ALIAS_SWITCH) {
+                                        mDevice.setSwitchFromCloud(null);
+                                        mDevice.setError("No switch value");
                                     }
                                 }
                             } catch (JSONException e) {
                                 Log.e(TAG, "JSONException getting the result: " + e.getMessage());
                             }
                         } else {
-                            Log.e(TAG, result.toString());
+                            Log.e(TAG, result.getStatus() + ' ' + result.getResult().toString());
                         }
                     }
                     updateWidgets();
@@ -411,29 +438,31 @@ public class MainActivity extends ActionBarActivity {
                 mReadHandler.postDelayed(mReadRunnable, 2000);
             }
         }
+
         class WriteTask extends AsyncTask<String, Integer, ArrayList<Result>> {
             private static final String TAG = "WriteTask";
-            private final String[] aliases = {"setpoint"};
-            private Exception exception;
-            // pass one value per entry in aliases above
+            private Exception exception = null;
+            // pass two values per alias to write -- alias followed by value to write
+            // for example "foo", "1", "bar", "2"
             protected ArrayList<Result> doInBackground(String... values) {
-                exception = null;
-                assert(values.length == aliases.length);
+                assert(values.length % 2 == 0);
                 OnePlatformRPC rpc = new OnePlatformRPC();
                 String responseBody = null;
                 try {
                     String requestBody = "{\"auth\":{\"cik\":\"" + mCIK
                             + "\"},\"calls\":[";
-                    for (int i = 0; i < aliases.length; i++) {
-                        String alias = aliases[i];
+                    for (int i = 0; i < values.length; i += 2) {
+                        String alias = values[i];
                         requestBody += "{\"id\":\"" + alias + "\",\"procedure\":\"write\","
                                 + "\"arguments\":[{\"alias\":\"" + alias + "\"},"
-                                + "\"" + values[i] + "\"]}";
-                        if (i != aliases.length - 1) {
+                                + "\"" + values[i + 1] + "\"]}";
+                        // are we pointing to the last alias?
+                        if (i != values.length - 2) {
                             requestBody += ',';
                         }
                     }
                     requestBody += "]}";
+                    Log.d(TAG, requestBody);
                     // do this just to check for JSON parse errors on client side
                     // while debugging. it can be removed for production.
                     JSONObject jo = new JSONObject(requestBody);
@@ -472,6 +501,7 @@ public class MainActivity extends ActionBarActivity {
                 mDevice.setWriteInProgress(false);
             }
         }
+
         class DownloadTask extends AsyncTask<String, Void, Bitmap> {
             String errorMessage;
             Context ctx;
@@ -516,9 +546,6 @@ public class MainActivity extends ActionBarActivity {
                         } else {
                             Toast.makeText(ctx, "Failed to save logo", Toast.LENGTH_SHORT).show();
                         }
-
-                        // update logo
-                        //mLogo.setImageBitmap(bitmap);
                         loadLogo(ctx);
                     } catch (FileNotFoundException e) {
                         Toast.makeText(ctx, "File not found when saving logo file", Toast.LENGTH_LONG).show();

@@ -22,25 +22,46 @@
         android:textStyle="bold"
         android:gravity="center_horizontal|center_vertical"
         android:layout_margin="0dp"/>
+
     <LinearLayout
-        android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:paddingLeft="@dimen/activity_horizontal_margin"
-        android:paddingRight="@dimen/activity_horizontal_margin"
-        android:paddingTop="20dp"
-        android:paddingBottom="20dp"
-        android:orientation="vertical">
-        <SeekBar
-            android:id="@+id/setpoint"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <LinearLayout
             android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:max="@integer/setpoint_max"
-            android:progress="@integer/setpoint_default"/>
-        <TextView
-            android:id="@+id/setpointText"
+            android:layout_width="0dp"
+            android:layout_weight="0.7"
+            android:paddingLeft="@dimen/activity_horizontal_margin"
+            android:paddingRight="@dimen/activity_horizontal_margin"
+            android:paddingTop="20dp"
+            android:paddingBottom="20dp"
+            android:orientation="vertical">
+            <SeekBar
+                android:id="@+id/setpoint"
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:max="@integer/setpoint_max"
+                android:progress="@integer/setpoint_default"/>
+            <TextView
+                android:id="@+id/setpointText"
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:gravity="center_vertical|center_horizontal"/>
+        </LinearLayout>
+        <LinearLayout
             android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:gravity="center_vertical|center_horizontal"/>
+            android:layout_width="0dp"
+            android:layout_weight="0.3"
+            android:paddingLeft="@dimen/activity_horizontal_margin"
+            android:paddingRight="@dimen/activity_horizontal_margin"
+            android:paddingTop="20dp"
+            android:paddingBottom="20dp"
+            android:orientation="vertical">
+            <ToggleButton
+                android:id="@+id/switch_control"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
     </LinearLayout>
     <ImageView
         android:id="@+id/logo"
