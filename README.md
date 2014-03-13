@@ -22,7 +22,7 @@ To revert to the Exosite logo, change the URL in settings to an empty string and
 
 ### Build 
 
-This application was built using Android Studio version 0.3.2.
+This application was built using Android Studio version 0.4.2.
 http://developer.android.com/sdk/installing/studio.html
 
 1.) Clone the source
