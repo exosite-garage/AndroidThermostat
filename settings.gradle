@@ -1,1 +1,1 @@
-include ':Demo', ':OnePlatformRPC'
+include ':Demo', ':OnePlatformRPC', ':Portals'

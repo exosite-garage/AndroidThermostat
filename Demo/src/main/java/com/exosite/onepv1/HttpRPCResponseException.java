@@ -12,7 +12,7 @@
 package com.exosite.onepv1;
 
 @SuppressWarnings("serial")
-public class HttpRPCResponseException extends Exception {
+public class HttpRPCResponseException extends OneException {
 
 	public HttpRPCResponseException(final String message) {
 		super(message);

@@ -1,5 +1,7 @@
 package com.exosite.onepv1;
 
+import android.util.Log;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -8,12 +10,16 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Iterator;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
 
 public class OnePlatformRPC {
+    private static final String TAG = "OnePlatformRPC";
     String mURL;
     int mTimeout;
 
@@ -117,7 +123,136 @@ public class OnePlatformRPC {
             }
         }
         return results;
+    }
 
+    public JSONObject buildMultiRequest(String cik, JSONArray calls, boolean assignIds) throws JSONException {
+        JSONObject req = new JSONObject();
 
+        JSONObject auth = new JSONObject();
+        auth.put("cik", cik);
+
+        req.put("auth", auth);
+
+        if (assignIds) {
+            for (int i = 0; i < calls.length(); i++) {
+                JSONObject call = calls.getJSONObject(i);
+                call.put("id", i);
+            }
+        }
+        req.put("calls", calls);
+
+        return req;
+    }
+
+    public JSONObject buildSingleRequest(String cik, String procedure, JSONArray arguments) throws JSONException {
+        JSONObject call = new JSONObject();
+        call.put("procedure", procedure);
+        call.put("arguments", arguments);
+        call.put("id", 1);
+
+        JSONArray calls = new JSONArray();
+        calls.put(call);
+
+        return buildMultiRequest(cik, calls, false);
+    }
+
+    public List<Result> callAndRaiseAnyError(JSONObject requestBody)
+            throws HttpRPCRequestException, HttpRPCResponseException, OnePlatformException, JSONException {
+        ArrayList<Result> results = null;
+        Log.v(TAG, requestBody.toString());
+        String responseBody = null;
+        responseBody = this.callRPC(requestBody.toString());
+        Log.v(TAG, responseBody.toString());
+
+        if (responseBody != null) {
+            results = parseResponses(responseBody);
+            // check the results for non ok results
+            for (Result r : results) {
+                if (r.getStatus() != "ok") {
+                    throw new OnePlatformException("OneP command result not \"ok\": " + r.toString());
+                }
+            }
+        } else {
+            throw new HttpRPCResponseException("Response from OneP is empty");
+        }
+
+        return results;
+    }
+
+    public JSONObject listing(String cik, JSONArray types)
+            throws JSONException, HttpRPCRequestException, HttpRPCResponseException, OnePlatformException {
+        JSONObject ret = new JSONObject();
+        JSONObject options = new JSONObject();
+
+        JSONArray arguments = new JSONArray();
+        arguments.put(types);
+        arguments.put(options);
+
+        JSONObject requestBody = buildSingleRequest(cik, "listing", arguments);
+        List<Result> results = this.callAndRaiseAnyError(requestBody);
+
+        return (JSONObject)results.get(0).getResult();
+    }
+
+    private ArrayList<JSONObject> info(String cik, List<String> rids, JSONObject infoOptions)
+            throws JSONException, HttpRPCRequestException, HttpRPCResponseException, OnePlatformException {
+        JSONArray calls = new JSONArray();
+
+        for (String rid: rids) {
+            JSONArray args = new JSONArray();
+            args.put(rid);
+            args.put(infoOptions);
+
+            JSONObject call = new JSONObject();
+            call.put("procedure", "info");
+            call.put("arguments", args);
+            calls.put(call);
+        }
+        JSONObject requestBody = buildMultiRequest(cik, calls, true);
+
+        List<Result> results = this.callAndRaiseAnyError(requestBody);
+
+        ArrayList<JSONObject> infoList = new ArrayList<JSONObject>();
+        for (int i = 0; i < rids.size(); i++) {
+            Result r = results.get(i);
+            JSONObject info = (JSONObject)r.getResult();
+            infoList.add(info);
+        }
+        return infoList;
+    }
+
+    /*
+    Returns a JSONObject mapping type strings to JSONObjects that in turn map RIDs to info JSONObjects.
+    The content of info JSONObjects depend on infoOptions. See here for details:
+    https://github.com/exosite/api/tree/master/rpc#info
+    e.g. {"client": {"<rid1>":{"key":"<cik1>"}}}
+     */
+    public JSONObject infoListing(String cik, JSONArray types, JSONObject infoOptions)
+                throws JSONException, OneException {
+        JSONObject infoListing = new JSONObject();
+
+        // first get listing
+        JSONObject listing = listing(cik, types);
+
+        Iterator<String> iter = listing.keys();
+        while(iter.hasNext()) {
+            String type = iter.next();
+            JSONArray typeRIDs = listing.getJSONArray(type);
+            ArrayList<String> rids = new ArrayList<String>();
+            for (int i = 0; i < typeRIDs.length(); i++) {
+                rids.add(typeRIDs.getString(i));
+            }
+            JSONObject typeObj = new JSONObject();
+            if (rids.size() > 0) {
+                List<JSONObject> infos = info(cik, rids, infoOptions);
+
+                for(int i = 0; i < rids.size(); i++) {
+                    typeObj.put(rids.get(i), infos.get(i));
+                }
+            }
+            infoListing.put(type, typeObj);
+        }
+
+        return infoListing;
     }
 }

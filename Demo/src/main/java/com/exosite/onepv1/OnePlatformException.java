@@ -12,7 +12,7 @@
 package com.exosite.onepv1;
 
 @SuppressWarnings("serial")
-public class OnePlatformException extends Exception {
+public class OnePlatformException extends OneException {
 
 	public OnePlatformException(final String message) {
 		super(message);

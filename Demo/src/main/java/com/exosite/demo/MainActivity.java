@@ -54,6 +54,9 @@ public class MainActivity extends ActionBarActivity {
     static boolean mShowActionColor;
     // url where alternative logo may be found
     static String mLogoUrl = "";
+    static String mEmail = "";
+    // For a production app, this should be encrypted/obfuscated
+    static String mPassword = "";
 
     // Device model
     static Device mDevice = new Device();
@@ -85,9 +88,23 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
+    protected void getLogin() {
+        SharedPreferences sharedPreferences = PreferenceManager
+                .getDefaultSharedPreferences(this);
+        mEmail = sharedPreferences.getString("email", null);
+        mPassword = sharedPreferences.getString("password", null);
+        if (mEmail == null || mPassword == null) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getLogin();
+
         setContentView(R.layout.activity_main);
 
         if (savedInstanceState == null) {
@@ -225,7 +242,9 @@ public class MainActivity extends ActionBarActivity {
             loadLogo(rootView.getContext());
 
             // start worker thread for reading from OneP
+            /* TODO: reenable this
             new ReadTask().execute();
+            */
             return rootView;
         }
 
