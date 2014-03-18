@@ -57,6 +57,18 @@ public class Portals {
                 String.format("{\"email\":\"%s\",\"action\":\"reset\"}", email));
     }
 
+    public void SignUp(String email, String password, String plan)
+            throws PortalsRequestException, PortalsResponseException {
+        SignUp(email, password, plan, "", "");
+    }
+
+    public void SignUp(String email, String password, String plan, String firstName, String lastName)
+            throws PortalsRequestException, PortalsResponseException {
+        HTTPResult r = call(mDomain, "user",
+                String.format("{\"email\":\"%s\",\"password\":\"%s\",\"plan\":\"%s\",\"first_name\":\"%s\",\"last_name\":\"%s\"}",
+                        email, password, plan, firstName, lastName));
+    }
+
     class HTTPResult {
         public int responseCode;
         public String responseBody;

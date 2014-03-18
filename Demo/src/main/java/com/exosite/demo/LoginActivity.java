@@ -26,16 +26,23 @@ import com.exosite.portals.PortalsResponseException;
 
 import org.json.JSONArray;
 
+import java.util.Random;
+
 /**
  * Activity which displays a login screen to the user, offering registration as
  * well.
  */
 public class LoginActivity extends Activity {
 
+    enum LoginTask {
+        SignIn,
+        SignUp
+    }
+
     /**
-     * The default email to populate the email field with.
+     * Exosite Portals plan identifier for new users.
      */
-    public static final String EXTRA_EMAIL = "com.example.android.authenticatordemo.extra.EMAIL";
+    public static final String PLAN_ID = "3676938388";
 
     /**
      * Keep track of the login and password recovery tasks so we can cancel them if requested.
@@ -61,9 +68,9 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.activity_login);
 
         // Set up the login form.
-        mEmail = getIntent().getStringExtra(EXTRA_EMAIL);
+        mEmail = "";
         mEmailView = (EditText) findViewById(R.id.email);
-        mEmailView.setText("danweaver+ti@exosite.com");
+        mEmailView.setText(mEmail);
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -76,8 +83,6 @@ public class LoginActivity extends Activity {
                 return false;
             }
         });
-        // TODO: remove this
-        mPasswordView.setText(mPassword);
 
         mLoginFormView = findViewById(R.id.login_form);
         mLoginStatusView = findViewById(R.id.login_status);
@@ -110,6 +115,18 @@ public class LoginActivity extends Activity {
                 mEmail = mEmailView.getText().toString();
                 mResetPasswordTask = new ResetPasswordTask();
                 mResetPasswordTask.execute((Void) null);
+
+                return true;
+            case R.id.action_sign_up:
+                // Show a progress spinner
+                mLoginStatusMessageView.setText(R.string.login_progress_signing_up);
+                showProgress(true);
+                // Store value at the time of the reset attempt.
+                mEmail = mEmailView.getText().toString();
+                mPassword = mPasswordView.getText().toString();
+
+                mAuthTask = new UserLoginTask();
+                mAuthTask.execute(LoginTask.SignUp);
 
                 return true;
         }
@@ -169,7 +186,7 @@ public class LoginActivity extends Activity {
             mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
             showProgress(true);
             mAuthTask = new UserLoginTask();
-            mAuthTask.execute((Void) null);
+            mAuthTask.execute(LoginTask.SignIn);
         }
     }
 
@@ -217,30 +234,41 @@ public class LoginActivity extends Activity {
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+    public class UserLoginTask extends AsyncTask<LoginTask, Void, Boolean> {
         JSONArray mPortalList = null;
-        Exception exception;
+        Exception mException;
+        LoginTask mTask;
 
         @Override
-        protected Boolean doInBackground(Void... params) {
+        protected Boolean doInBackground(LoginTask... loginTask) {
             mPortalList = null;
-            exception = null;
+            mException = null;
+            mTask = loginTask[0];
+
             //try {
                 Portals p = new Portals();
                 p.setDomain("ti.exosite.com");
                 p.setTimeoutSeconds(15);
+
                 try {
-                    mPortalList = p.ListPortals(mEmail, mPassword);
+                    switch(loginTask[0]) {
+                        case SignUp:
+                            p.SignUp(mEmail, mPassword, PLAN_ID);
+                            return true;
+                        case SignIn:
+                            mPortalList = p.ListPortals(mEmail, mPassword);
+                            return true;
+                    }
                 } catch (PortalsRequestException e) {
-                    exception = e;
+                    mException = e;
                     return false;
                 } catch (PortalsResponseException e) {
-                    exception = e;
+                    mException = e;
                     return false;
                 }
-            /*} catch (InterruptedException e) {
-                return false;
-            }*/
+            //} catch (InterruptedException e) {
+            //    return false;
+            //}
 
             return true;
         }
@@ -255,18 +283,24 @@ public class LoginActivity extends Activity {
                         .getDefaultSharedPreferences(LoginActivity.this);
                 sharedPreferences.edit().putString("email", mEmail).commit();
                 sharedPreferences.edit().putString("password", mPassword).commit();
+                if (mTask == LoginTask.SignIn) {
 
-                // let the user select a portal and device
-                Intent intent = new Intent(LoginActivity.this, SelectDeviceActivity.class);
-                Bundle bundle = new Bundle();
-                bundle.putString("portal_list", mPortalList.toString());
-                intent.putExtras(bundle);
-                startActivity(intent);
+                    // let the user select a portal and device
+                    Intent intent = new Intent(LoginActivity.this, SelectDeviceActivity.class);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("portal_list", mPortalList.toString());
+                    intent.putExtras(bundle);
+                    startActivity(intent);
+                    finish();
 
-                finish();
+                } else {
+                    Toast.makeText(getApplicationContext(),
+                            String.format("Sent confirmation email to %s", mEmail), Toast.LENGTH_LONG).show();
+                }
+
             } else {
-                if (exception instanceof PortalsResponseException) {
-                    PortalsResponseException pre = (PortalsResponseException)exception;
+                if (mException instanceof PortalsResponseException) {
+                    PortalsResponseException pre = (PortalsResponseException) mException;
                     int code = pre.getResponseCode();
                     if (code == 401) {
                         Toast.makeText(getApplicationContext(),
@@ -278,7 +312,7 @@ public class LoginActivity extends Activity {
                 } else {
 
                     Toast.makeText(getApplicationContext(),
-                            String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
+                            String.format("Unexpected error: %s", mException.getMessage()), Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -299,19 +333,22 @@ public class LoginActivity extends Activity {
         @Override
         protected Boolean doInBackground(Void... params) {
             exception = null;
-            Portals p = new Portals();
-            p.setDomain("ti.exosite.com");
-            p.setTimeoutSeconds(15);
-            try {
-                p.ResetPassword(mEmail);
-            } catch (PortalsRequestException e) {
-                exception = e;
-                return false;
-            } catch (PortalsResponseException e) {
-                exception = e;
-                return false;
-            }
-
+            //try {
+                Portals p = new Portals();
+                p.setDomain("ti.exosite.com");
+                p.setTimeoutSeconds(15);
+                try {
+                    p.ResetPassword(mEmail);
+                } catch (PortalsRequestException e) {
+                    exception = e;
+                    return false;
+                } catch (PortalsResponseException e) {
+                    exception = e;
+                    return false;
+                }
+            //} catch (InterruptedException e) {
+            //    return false;
+            //}
             return true;
         }
 
