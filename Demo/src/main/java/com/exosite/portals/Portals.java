@@ -10,7 +10,6 @@ import java.net.URL;
 import android.util.Base64;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 import org.json.JSONException;
 
 /**
@@ -42,7 +41,8 @@ public class Portals {
     public JSONArray ListPortals(String email, String password)
             throws PortalsRequestException, PortalsResponseException {
         JSONArray response = null;
-        String responseBody = call(mDomain, "portal/", "", email, password);
+        HTTPResult r = call(mDomain, "portal/", "", email, password);
+        String responseBody = r.responseBody;
         try {
             response = new JSONArray(responseBody);
         } catch (JSONException e) {
@@ -51,17 +51,23 @@ public class Portals {
         return response;
     }
 
+    class HTTPResult {
+        public int responseCode;
+        public String responseBody;
+    }
+
     /*
     Makes a call to the the Portals API.
     domain - e.g. portals.exosite.com
     path - e.g. user/password
     body - e.g. {"action":"reset", "email":"johndoe@gmail555.com"}
      */
-    public String call(String domain, String path, String body, String email, String password)
+    public HTTPResult call(String domain, String path, String body, String email, String password)
             throws PortalsRequestException, PortalsResponseException {
         URL url = null;
         HttpURLConnection conn = null;
         OutputStreamWriter writer = null;
+        HTTPResult result = new HTTPResult();
         StringBuffer response = new StringBuffer();
         try {
             url = new URL("https://" + domain + "/api/portals/v1/" + path);
@@ -76,14 +82,16 @@ public class Portals {
                         Base64.NO_WRAP);
                 conn.setRequestProperty("Authorization", "Basic " + encoded);
             }
-            conn.setDoOutput(true);
             conn.setUseCaches(false);
-            conn.setRequestProperty("Content-Length", "" + body.length());
             conn.setConnectTimeout(this.mTimeoutSeconds * 1000);
+            conn.setRequestProperty("User-Agent", "Android demo app");
             if (body.length() > 0) {
                 conn.setRequestMethod("POST");
+                conn.setRequestProperty("Accept", "*/*");
+                conn.setRequestProperty("Content-Length", "" + body.length());
                 conn.setRequestProperty("Content-Type",
                         "application/json; charset=utf-8");
+                conn.setDoOutput(true);
                 conn.connect();
 
                 try {
@@ -102,6 +110,12 @@ public class Portals {
                 conn.connect();
             }
 
+            result.responseCode = conn.getResponseCode();
+            if (result.responseCode == 401)
+            {
+                throw new PortalsResponseException(
+                        "username or password is invalid", conn.getResponseCode(), "");
+            }
             BufferedReader reader = null;
             try {
                 reader = new BufferedReader(new InputStreamReader(conn
@@ -112,11 +126,16 @@ public class Portals {
                 }
             } catch (IOException e) {
                 throw new PortalsResponseException(
-                        "IOException when getting http response.");
+                        "Error reading response", conn.getResponseCode(), "");
             } finally {
                 if (null != reader)
                     reader.close();
             }
+
+            if (result.responseCode >= 300) {
+                throw new PortalsResponseException(result.responseBody, result.responseCode, response.toString());
+            }
+
         } catch (IOException e) {
             throw new PortalsRequestException(
                     "IOException when opening/closing url connection.");
@@ -124,7 +143,7 @@ public class Portals {
             if (conn != null)
                 conn.disconnect();
         }
-        return response.toString();
-
+        result.responseBody = response.toString();
+        return result;
     }
 }

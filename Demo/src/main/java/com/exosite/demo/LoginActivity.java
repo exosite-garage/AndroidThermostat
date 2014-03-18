@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.exosite.portals.Portals;
 import com.exosite.portals.PortalsRequestException;
@@ -42,7 +43,6 @@ public class LoginActivity extends Activity {
 
     // Values for email and password at the time of the login attempt.
     private String mEmail;
-    // TODO: remove default
     private String mPassword;
 
     // UI references.
@@ -61,7 +61,7 @@ public class LoginActivity extends Activity {
         // Set up the login form.
         mEmail = getIntent().getStringExtra(EXTRA_EMAIL);
         mEmailView = (EditText) findViewById(R.id.email);
-        mEmailView.setText("");
+        mEmailView.setText("danweaver+ti@exosite.com");
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -88,7 +88,6 @@ public class LoginActivity extends Activity {
             }
         });
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -123,7 +122,7 @@ public class LoginActivity extends Activity {
             mPasswordView.setError(getString(R.string.error_field_required));
             focusView = mPasswordView;
             cancel = true;
-        } else if (mPassword.length() < 4) {
+        } else if (mPassword.length() < 6) {
             mPasswordView.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordView;
             cancel = true;
@@ -200,10 +199,12 @@ public class LoginActivity extends Activity {
      */
     public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
         JSONArray mPortalList = null;
+        Exception exception;
 
         @Override
         protected Boolean doInBackground(Void... params) {
             mPortalList = null;
+            exception = null;
             //try {
                 Portals p = new Portals();
                 p.setDomain("ti.exosite.com");
@@ -211,10 +212,10 @@ public class LoginActivity extends Activity {
                 try {
                     mPortalList = p.ListPortals(mEmail, mPassword);
                 } catch (PortalsRequestException e) {
-                    // TODO
+                    exception = e;
                     return false;
                 } catch (PortalsResponseException e) {
-                    // TODO
+                    exception = e;
                     return false;
                 }
             /*} catch (InterruptedException e) {
@@ -232,7 +233,7 @@ public class LoginActivity extends Activity {
             if (success) {
                 SharedPreferences sharedPreferences = PreferenceManager
                         .getDefaultSharedPreferences(LoginActivity.this);
-                sharedPreferences.edit().putString("username", mEmail).commit();
+                sharedPreferences.edit().putString("email", mEmail).commit();
                 sharedPreferences.edit().putString("password", mPassword).commit();
 
                 // let the user select a portal and device
@@ -244,8 +245,26 @@ public class LoginActivity extends Activity {
 
                 finish();
             } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
+                if (exception != null) {
+                    if (exception instanceof PortalsResponseException) {
+                        PortalsResponseException pre = (PortalsResponseException)exception;
+                        int code = pre.getResponseCode();
+                        if (code == 401) {
+                            Toast.makeText(getApplicationContext(),
+                                    String.format(getString(R.string.error_unauthorized)), Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(getApplicationContext(),
+                                    String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+
+                        Toast.makeText(getApplicationContext(),
+                                String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    mPasswordView.setError(getString(R.string.error_incorrect_password));
+                    mPasswordView.requestFocus();
+                }
             }
         }
 

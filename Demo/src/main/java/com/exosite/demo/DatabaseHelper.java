@@ -29,13 +29,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void RecreateTable(SQLiteDatabase db) {
         db.execSQL("DROP TABLE " + DEVICES + ";");
         db.execSQL(CreateString);
-
     }
 
     public void RecreateTable() {
         SQLiteDatabase db = this.getWritableDatabase();
         this.RecreateTable(db);
-        db.close();
     }
 
     @Override

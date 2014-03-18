@@ -88,7 +88,7 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    protected void getLogin() {
+    protected boolean getLogin() {
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
         mEmail = sharedPreferences.getString("email", null);
@@ -96,14 +96,18 @@ public class MainActivity extends ActionBarActivity {
         if (mEmail == null || mPassword == null) {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
+            return false;
         }
+        return true;
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getLogin();
+        if ( !getLogin() ) {
+            return;
+        }
 
         setContentView(R.layout.activity_main);
 
@@ -242,9 +246,8 @@ public class MainActivity extends ActionBarActivity {
             loadLogo(rootView.getContext());
 
             // start worker thread for reading from OneP
-            /* TODO: reenable this
             new ReadTask().execute();
-            */
+
             return rootView;
         }
 
@@ -285,7 +288,7 @@ public class MainActivity extends ActionBarActivity {
             }
             if (setpoint == null) {
                 // if setpoint hasn't been set, leave setpoint slider as it is
-                mSetpoint.setEnabled(false);
+                // mSetpoint.setEnabled(false);
                 mSetpointText.setText("");
             } else {
                 mSetpoint.setEnabled(true);
@@ -341,7 +344,7 @@ public class MainActivity extends ActionBarActivity {
 
         class ReadTask extends AsyncTask<Void, Integer, ArrayList<Result>> {
             private static final String TAG = "ReadTask";
-            private final String[] aliases = {ALIAS_TEMP, ALIAS_SETPOINT, ALIAS_SWITCH};
+            private final String[] aliases = {ALIAS_TEMP, ALIAS_SETPOINT/*, ALIAS_SWITCH */};
             private Exception exception;
             protected ArrayList<Result> doInBackground(Void... params) {
                 exception = null;
