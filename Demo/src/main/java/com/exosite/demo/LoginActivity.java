@@ -13,6 +13,7 @@ import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
@@ -37,9 +38,10 @@ public class LoginActivity extends Activity {
     public static final String EXTRA_EMAIL = "com.example.android.authenticatordemo.extra.EMAIL";
 
     /**
-     * Keep track of the login task to ensure we can cancel it if requested.
+     * Keep track of the login and password recovery tasks so we can cancel them if requested.
      */
     private UserLoginTask mAuthTask = null;
+    private ResetPasswordTask mResetPasswordTask = null;
 
     // Values for email and password at the time of the login attempt.
     private String mEmail;
@@ -94,6 +96,24 @@ public class LoginActivity extends Activity {
         super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.login, menu);
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case R.id.action_forgot_password:
+                // Show a progress spinner, and kick off a background task to
+                // perform the password recovery email attempt.
+                mLoginStatusMessageView.setText(R.string.login_progress_recovering_password);
+                showProgress(true);
+                // Store value at the time of the reset attempt.
+                mEmail = mEmailView.getText().toString();
+                mResetPasswordTask = new ResetPasswordTask();
+                mResetPasswordTask.execute((Void) null);
+
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -245,25 +265,20 @@ public class LoginActivity extends Activity {
 
                 finish();
             } else {
-                if (exception != null) {
-                    if (exception instanceof PortalsResponseException) {
-                        PortalsResponseException pre = (PortalsResponseException)exception;
-                        int code = pre.getResponseCode();
-                        if (code == 401) {
-                            Toast.makeText(getApplicationContext(),
-                                    String.format(getString(R.string.error_unauthorized)), Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(getApplicationContext(),
-                                    String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
-                        }
-                    } else {
-
+                if (exception instanceof PortalsResponseException) {
+                    PortalsResponseException pre = (PortalsResponseException)exception;
+                    int code = pre.getResponseCode();
+                    if (code == 401) {
                         Toast.makeText(getApplicationContext(),
-                                String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
+                                String.format(getString(R.string.error_unauthorized)), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(getApplicationContext(),
+                                String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
                     }
                 } else {
-                    mPasswordView.setError(getString(R.string.error_incorrect_password));
-                    mPasswordView.requestFocus();
+
+                    Toast.makeText(getApplicationContext(),
+                            String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -271,6 +286,60 @@ public class LoginActivity extends Activity {
         @Override
         protected void onCancelled() {
             mAuthTask = null;
+            showProgress(false);
+        }
+    }
+
+    /**
+     * Represents an asynchronous task used to request password recovery email.
+     */
+    public class ResetPasswordTask extends AsyncTask<Void, Void, Boolean> {
+        Exception exception;
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            exception = null;
+            Portals p = new Portals();
+            p.setDomain("ti.exosite.com");
+            p.setTimeoutSeconds(15);
+            try {
+                p.ResetPassword(mEmail);
+            } catch (PortalsRequestException e) {
+                exception = e;
+                return false;
+            } catch (PortalsResponseException e) {
+                exception = e;
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mResetPasswordTask = null;
+            showProgress(false);
+
+            if (success) {
+                Toast.makeText(getApplicationContext(),
+                        String.format("Password recovery email sent to %s", mEmail), Toast.LENGTH_LONG).show();
+                finish();
+            } else {
+                if (exception instanceof PortalsResponseException) {
+                    PortalsResponseException pre = (PortalsResponseException)exception;
+                    int code = pre.getResponseCode();
+                    Toast.makeText(getApplicationContext(),
+                            String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getApplicationContext(),
+                            String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mResetPasswordTask = null;
             showProgress(false);
         }
     }

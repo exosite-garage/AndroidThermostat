@@ -51,16 +51,35 @@ public class Portals {
         return response;
     }
 
+    public void ResetPassword(String email)
+            throws PortalsRequestException, PortalsResponseException {
+        HTTPResult r = call(mDomain, "user/password",
+                String.format("{\"email\":\"%s\",\"action\":\"reset\"}", email));
+    }
+
     class HTTPResult {
         public int responseCode;
         public String responseBody;
     }
 
     /*
-    Makes a call to the the Portals API.
+    Makes a call to the the Portals API with no authentication.
     domain - e.g. portals.exosite.com
-    path - e.g. user/password
-    body - e.g. {"action":"reset", "email":"johndoe@gmail555.com"}
+    path   - e.g. user/password
+    body   - e.g. {"action":"reset", "email":"johndoe@gmail555.com"}
+     */
+    public HTTPResult call(String domain, String path, String body)
+            throws PortalsRequestException, PortalsResponseException {
+        return call(domain, path, body, null, null);
+    }
+
+    /*
+    Makes a call to the the Portals API.
+    domain   - e.g. portals.exosite.com
+    path     - e.g. user/password
+    body     - e.g. {"action":"reset", "email":"johndoe@gmail555.com"}
+    email    - email to use for authentication, or null for no authentication
+    password - password to use for authentication, or null for no authentication
      */
     public HTTPResult call(String domain, String path, String body, String email, String password)
             throws PortalsRequestException, PortalsResponseException {
@@ -70,13 +89,15 @@ public class Portals {
         HTTPResult result = new HTTPResult();
         StringBuffer response = new StringBuffer();
         try {
+            // for testing
+            // url = new URL("http://192.168.3.142:8001/api/portals/v1/" + path);
             url = new URL("https://" + domain + "/api/portals/v1/" + path);
         } catch (MalformedURLException ex) {
             throw new PortalsRequestException("Malformed URL.");
         }
         try {
             conn = (HttpURLConnection) url.openConnection();
-            if (email.length() > 0 && password.length() > 0) {
+            if (email != null && password != null) {
                 String encoded = Base64.encodeToString(
                         (email + ":" + password).getBytes(),
                         Base64.NO_WRAP);
@@ -87,11 +108,11 @@ public class Portals {
             conn.setRequestProperty("User-Agent", "Android demo app");
             if (body.length() > 0) {
                 conn.setRequestMethod("POST");
-                conn.setRequestProperty("Accept", "*/*");
+                //conn.setRequestProperty("Accept", "*/*");
+                conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Length", "" + body.length());
                 conn.setRequestProperty("Content-Type",
                         "application/json; charset=utf-8");
-                conn.setDoOutput(true);
                 conn.connect();
 
                 try {
