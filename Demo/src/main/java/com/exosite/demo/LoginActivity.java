@@ -65,7 +65,7 @@ public class LoginActivity extends Activity {
         // Set up the login form.
         mEmail = "";
         mEmailView = (EditText) findViewById(R.id.email);
-        mEmailView.setText(mEmail); 
+        mEmailView.setText(mEmail);
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {

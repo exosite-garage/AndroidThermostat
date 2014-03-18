@@ -106,7 +106,7 @@ public class MainActivity extends ActionBarActivity {
                 .getDefaultSharedPreferences(this);
         mEmail = sharedPreferences.getString("email", null);
         mPassword = sharedPreferences.getString("password", null);
-        boolean debug = true;
+        boolean debug = false;
         if (mEmail == null || mPassword == null || debug) {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
