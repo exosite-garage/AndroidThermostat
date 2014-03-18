@@ -40,11 +40,6 @@ public class LoginActivity extends Activity {
     }
 
     /**
-     * Exosite Portals plan identifier for new users.
-     */
-    public static final String PLAN_ID = "3676938388";
-
-    /**
      * Keep track of the login and password recovery tasks so we can cancel them if requested.
      */
     private UserLoginTask mAuthTask = null;
@@ -70,7 +65,7 @@ public class LoginActivity extends Activity {
         // Set up the login form.
         mEmail = "";
         mEmailView = (EditText) findViewById(R.id.email);
-        mEmailView.setText(mEmail);
+        mEmailView.setText(mEmail); 
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -253,7 +248,7 @@ public class LoginActivity extends Activity {
                 try {
                     switch(loginTask[0]) {
                         case SignUp:
-                            p.SignUp(mEmail, mPassword, PLAN_ID);
+                            p.SignUp(mEmail, mPassword, MainActivity.PLAN_ID);
                             return true;
                         case SignIn:
                             mPortalList = p.ListPortals(mEmail, mPassword);
@@ -285,11 +280,9 @@ public class LoginActivity extends Activity {
                 sharedPreferences.edit().putString("password", mPassword).commit();
                 if (mTask == LoginTask.SignIn) {
 
-                    // let the user select a portal and device
+                    sharedPreferences.edit().putString("portal_list", mPortalList.toString()).commit();
+
                     Intent intent = new Intent(LoginActivity.this, SelectDeviceActivity.class);
-                    Bundle bundle = new Bundle();
-                    bundle.putString("portal_list", mPortalList.toString());
-                    intent.putExtras(bundle);
                     startActivity(intent);
                     finish();
 

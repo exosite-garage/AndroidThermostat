@@ -86,7 +86,9 @@ public class SelectDeviceActivity extends ListActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_add_device) {
+            Intent intent = new Intent(this, AddDeviceActivity.class);
+            startActivity(intent);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -103,7 +105,10 @@ public class SelectDeviceActivity extends ListActivity {
             OnePlatformRPC rpc = new OnePlatformRPC();
             exception = null;
             try {
-                mPortalList = new JSONArray(bundle.getString("portal_list"));
+                SharedPreferences sharedPreferences = PreferenceManager
+                        .getDefaultSharedPreferences(SelectDeviceActivity.this);
+
+                mPortalList = new JSONArray(sharedPreferences.getString("portal_list", "[]"));
                 JSONObject infoOptions = new JSONObject();
                 infoOptions.put("description", true);
                 infoOptions.put("key", true);
@@ -162,4 +167,6 @@ public class SelectDeviceActivity extends ListActivity {
             }
         }
     }
+
+
 }

@@ -47,6 +47,19 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 
 public class MainActivity extends ActionBarActivity {
+    /**
+     * Exosite Portals plan identifier for new users.
+     */
+    public static final String PLAN_ID = "3676938388";
+    /***
+     * Vendor identifier for new devices.
+     */
+    public static final String VENDOR = "texasinstruments";
+    /***
+     * Device model identifier for new devices.
+     */
+    public static final String DEVICE_MODEL = "cc3101lpv1";
+
     private static final String TAG = "MainActivity";
     // TI device CIK
     static String mCIK;
@@ -93,7 +106,8 @@ public class MainActivity extends ActionBarActivity {
                 .getDefaultSharedPreferences(this);
         mEmail = sharedPreferences.getString("email", null);
         mPassword = sharedPreferences.getString("password", null);
-        if (mEmail == null || mPassword == null) {
+        boolean debug = true;
+        if (mEmail == null || mPassword == null || debug) {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
             return false;
@@ -133,7 +147,7 @@ public class MainActivity extends ActionBarActivity {
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener);
 
         // remove Exosite from title
-        setTitle("");
+        setTitle("Thermostat Demo");
     }
 
     @Override

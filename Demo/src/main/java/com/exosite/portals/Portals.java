@@ -11,6 +11,7 @@ import android.util.Base64;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Provides access to the Portals API
@@ -67,6 +68,21 @@ public class Portals {
         HTTPResult r = call(mDomain, "user",
                 String.format("{\"email\":\"%s\",\"password\":\"%s\",\"plan\":\"%s\",\"first_name\":\"%s\",\"last_name\":\"%s\"}",
                         email, password, plan, firstName, lastName));
+    }
+
+    public JSONObject AddDevice(String portalRID, String vendor, String model, String sn, String name, String email, String password)
+            throws PortalsRequestException, PortalsResponseException {
+        HTTPResult r = call(mDomain, "device",
+                String.format("{\"portal_rid\":\"%s\",\"vendor\":\"%s\",\"model\":\"%s\",\"serialnumber\":\"%s\",\"name\":\"%s\"}",
+                        portalRID, vendor, model, sn, name), email, password);
+        JSONObject response = null;
+        String responseBody = r.responseBody;
+        try {
+            response = new JSONObject(responseBody);
+        } catch (JSONException e) {
+            throw new PortalsRequestException("Invalid JSON in response. Response was: " + responseBody);
+        }
+        return response;
     }
 
     class HTTPResult {
@@ -149,10 +165,15 @@ public class Portals {
                 throw new PortalsResponseException(
                         "username or password is invalid", conn.getResponseCode(), "");
             }
+            InputStreamReader isr;
+            if (result.responseCode >= 300) {
+                isr = new InputStreamReader(conn.getErrorStream());
+            } else {
+                isr = new InputStreamReader(conn.getInputStream());
+            }
             BufferedReader reader = null;
             try {
-                reader = new BufferedReader(new InputStreamReader(conn
-                        .getInputStream()));
+                reader = new BufferedReader(isr);
                 String line;
                 while ((line = reader.readLine()) != null) {
                     response.append(line);
@@ -166,6 +187,7 @@ public class Portals {
             }
 
             if (result.responseCode >= 300) {
+                result.responseBody = response.toString();
                 throw new PortalsResponseException(result.responseBody, result.responseCode, response.toString());
             }
 
