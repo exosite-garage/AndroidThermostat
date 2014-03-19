@@ -51,18 +51,24 @@ public class MainActivity extends ActionBarActivity {
      * Exosite Portals plan identifier for new users.
      */
     public static final String PLAN_ID = "3676938388";
-    /***
+    /**
      * Vendor identifier for new devices.
      */
     public static final String VENDOR = "texasinstruments";
-    /***
+    /**
      * Device model identifier for new devices.
      */
     public static final String DEVICE_MODEL = "cc3101lpv1";
+    /**
+     * Domain for interacting with Portals API
+     */
+    public static final String PORTALS_DOMAIN = "ti.exosite.com";
+
 
     private static final String TAG = "MainActivity";
     // TI device CIK
     static String mCIK;
+    static String mName;
     // whether to show colors for action
     static boolean mShowActionColor;
     // url where alternative logo may be found
@@ -86,6 +92,7 @@ public class MainActivity extends ActionBarActivity {
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
         mCIK = sharedPreferences.getString(SettingsActivity.KEY_PREF_DEVICE_CIK, "DEFAULT CIK");
+        mName = sharedPreferences.getString(SettingsActivity.KEY_PREF_DEVICE_NAME, "");
         mShowActionColor = sharedPreferences.getBoolean(SettingsActivity.KEY_PREF_ACTION_COLOR, true);
         String url = sharedPreferences.getString(SettingsActivity.KEY_PREF_LOGO_URL, "");
         // if the logo URL is updated, remove the saved bitmap.
@@ -106,7 +113,7 @@ public class MainActivity extends ActionBarActivity {
                 .getDefaultSharedPreferences(this);
         mEmail = sharedPreferences.getString("email", null);
         mPassword = sharedPreferences.getString("password", null);
-        boolean debug = false;
+        boolean debug = true;
         if (mEmail == null || mPassword == null || debug) {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
@@ -146,8 +153,7 @@ public class MainActivity extends ActionBarActivity {
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener);
 
-        // remove Exosite from title
-        setTitle("Thermostat Demo");
+        setTitle(mName);
     }
 
     @Override

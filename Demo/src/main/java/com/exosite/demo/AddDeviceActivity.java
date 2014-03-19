@@ -170,9 +170,8 @@ public class AddDeviceActivity extends ActionBarActivity {
 
                 mNewDevice = null;
                 exception = null;
-                //try {
                 Portals p = new Portals();
-                p.setDomain("ti.exosite.com");
+                p.setDomain(MainActivity.PORTALS_DOMAIN);
                 p.setTimeoutSeconds(15);
                 try {
                     SharedPreferences sharedPreferences = PreferenceManager
@@ -196,9 +195,6 @@ public class AddDeviceActivity extends ActionBarActivity {
                     exception = e;
                     return false;
                 }
-                //} catch (InterruptedException e) {
-                //    return false;
-                //}
                 return true;
             }
 

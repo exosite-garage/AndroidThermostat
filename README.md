@@ -4,7 +4,9 @@ This Android app demonstrates connectivity to the One Platform via the [RPC API]
 
 ### Usage
 
-To use this app you need a device on Exosite's One Platform. At minimum the demo device needs to be configured as follows:
+To use this app you need a device on Exosite's One Platform. There are two ways to create a device that will work with this demo.
+
+A.) Create one by hand. At minimum the demo device needs to be configured as follows:
 
 ```
 dataports:
@@ -14,9 +16,12 @@ dataports:
       format: float
 ```
 
-Once you have a CIK with the dataports specified above, enter that CIK in the App under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports. 
+Once you have a CIK for a device with the dataports specified above, enter that CIK in the App under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports.
 
-To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects. 
+B.) Add an existing device from a user's portal, by signing in and selecting it in the "Select Device" list. The device must fit the description in (A).
+C.) Log in and create one automatically. Enter portals account email and password, press "Sign in" and on the "Select Device" screen, press the button in the upper right and select "Add Device". This creates a device based on a model that fits the description in (A).
+
+To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects.
 
 To revert to the Exosite logo, change the URL in settings to an empty string and then shut down and restart the app
 

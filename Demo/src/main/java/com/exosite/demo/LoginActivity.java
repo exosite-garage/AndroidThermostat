@@ -65,7 +65,7 @@ public class LoginActivity extends Activity {
         // Set up the login form.
         mEmail = "";
         mEmailView = (EditText) findViewById(R.id.email);
-        mEmailView.setText(mEmail);
+        mEmailView.setText(mEmail); // String.format("danweaver+ti_%d@exosite.com", new Random().nextInt(100000)));
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -240,30 +240,26 @@ public class LoginActivity extends Activity {
             mException = null;
             mTask = loginTask[0];
 
-            //try {
-                Portals p = new Portals();
-                p.setDomain("ti.exosite.com");
-                p.setTimeoutSeconds(15);
+            Portals p = new Portals();
+            p.setDomain(MainActivity.PORTALS_DOMAIN);
+            p.setTimeoutSeconds(15);
 
-                try {
-                    switch(loginTask[0]) {
-                        case SignUp:
-                            p.SignUp(mEmail, mPassword, MainActivity.PLAN_ID);
-                            return true;
-                        case SignIn:
-                            mPortalList = p.ListPortals(mEmail, mPassword);
-                            return true;
-                    }
-                } catch (PortalsRequestException e) {
-                    mException = e;
-                    return false;
-                } catch (PortalsResponseException e) {
-                    mException = e;
-                    return false;
+            try {
+                switch(loginTask[0]) {
+                    case SignUp:
+                        p.SignUp(mEmail, mPassword, MainActivity.PLAN_ID);
+                        return true;
+                    case SignIn:
+                        mPortalList = p.ListPortals(mEmail, mPassword);
+                        return true;
                 }
-            //} catch (InterruptedException e) {
-            //    return false;
-            //}
+            } catch (PortalsRequestException e) {
+                mException = e;
+                return false;
+            } catch (PortalsResponseException e) {
+                mException = e;
+                return false;
+            }
 
             return true;
         }
@@ -326,22 +322,18 @@ public class LoginActivity extends Activity {
         @Override
         protected Boolean doInBackground(Void... params) {
             exception = null;
-            //try {
-                Portals p = new Portals();
-                p.setDomain("ti.exosite.com");
-                p.setTimeoutSeconds(15);
-                try {
-                    p.ResetPassword(mEmail);
-                } catch (PortalsRequestException e) {
-                    exception = e;
-                    return false;
-                } catch (PortalsResponseException e) {
-                    exception = e;
-                    return false;
-                }
-            //} catch (InterruptedException e) {
-            //    return false;
-            //}
+            Portals p = new Portals();
+            p.setDomain(MainActivity.PORTALS_DOMAIN);
+            p.setTimeoutSeconds(15);
+            try {
+                p.ResetPassword(mEmail);
+            } catch (PortalsRequestException e) {
+                exception = e;
+                return false;
+            } catch (PortalsResponseException e) {
+                exception = e;
+                return false;
+            }
             return true;
         }
 

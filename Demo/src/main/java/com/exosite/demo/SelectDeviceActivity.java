@@ -1,6 +1,7 @@
 package com.exosite.demo;
 
 import android.app.ListActivity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -41,8 +42,7 @@ public class SelectDeviceActivity extends ListActivity {
         mDB.RecreateTable();
         setupAdapter();
 
-        new LoadDevicesTask().execute();
-
+        new LoadDevicesTask(getListView().getContext()).execute();
     }
 
     private void setupAdapter() {
@@ -61,12 +61,14 @@ public class SelectDeviceActivity extends ListActivity {
 
         Object o = this.getListAdapter().getItem(position);
         SQLiteCursor c = (SQLiteCursor)o;
-        int cikIdx = c.getColumnIndex(DatabaseHelper.colCIK);
-        String cik = c.getString(cikIdx);
+        String cik = c.getString(c.getColumnIndex(DatabaseHelper.colCIK));
+        String name = c.getString(c.getColumnIndex(DatabaseHelper.colName));
 
+        // select a device to use in the Thermostat demo
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
         sharedPreferences.edit().putString(SettingsActivity.KEY_PREF_DEVICE_CIK, cik).commit();
+        sharedPreferences.edit().putString(SettingsActivity.KEY_PREF_DEVICE_NAME, name).commit();
 
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
@@ -94,14 +96,20 @@ public class SelectDeviceActivity extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    // Represents a task that can load information about devices
+    // Represents a task that loads information about devices
     // from OneP on a background thread.
     class LoadDevicesTask extends AsyncTask<Void, Integer, JSONObject> {
-        private static final String TAG = "ReadTask";
+        private static final String TAG = "LoadDevicesTask";
         private Exception exception;
+        Context mCtx;
+        public LoadDevicesTask(Context ctx) {
+            mCtx = ctx;
+        }
+
         protected JSONObject doInBackground(Void... params) {
             Bundle bundle = getIntent().getExtras();
-
+            // maps portals RIDs to info listing for each portal
+            JSONObject response = new JSONObject();
             OnePlatformRPC rpc = new OnePlatformRPC();
             exception = null;
             try {
@@ -133,34 +141,36 @@ public class SelectDeviceActivity extends ListActivity {
                                         info.getString("key").substring(0, 8)),
                                 info.getString("key"),
                                 portal.getString("rid"),
-                                portal.getString("name"),
+                                String.format("Portal: %s", portal.getString("name")),
                                 portal.getString("key"));
                     }
-
-                    // TODO: combine results from multiple portals
-                    // and return them outside the loop.
-
-                    return clientsInfoListing;
+                    response.put(portal.getString("rid"), clientsInfoListing);
                 }
+                return response;
+
             } catch (JSONException e) {
                 exception = e;
                 Log.e(TAG, "JSONException in ReadPortals.doInBackground: " + e.toString());
-                return null;
             } catch (OneException e) {
                 exception = e;
                 Log.e(TAG, "OneException: " + e.toString());
-                return null;
             }
             return null;
         }
 
         // this is executed on UI thread when doInBackground
         // returns a result
-        protected void onPostExecute(JSONObject portals) {
+        protected void onPostExecute(JSONObject infoListing) {
             if (exception == null) {
                 Cursor cursor = mDB.GetAllData();
                 mAdapter.changeCursor(cursor);
                 mAdapter.notifyDataSetChanged();
+
+                // cache the info listing so that we can display the list when offline
+                SharedPreferences sharedPreferences = PreferenceManager
+                        .getDefaultSharedPreferences(mCtx);
+                sharedPreferences.edit().putString("info_listing", infoListing.toString()).commit();
+
             } else {
                 Toast.makeText(getApplicationContext(),
                         String.format("Error fetching devices: %s", exception.getMessage()), Toast.LENGTH_LONG).show();

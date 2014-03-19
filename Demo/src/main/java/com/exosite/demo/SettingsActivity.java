@@ -40,6 +40,7 @@ public class SettingsActivity extends PreferenceActivity {
     private static final boolean ALWAYS_SIMPLE_PREFS = true;
 
     public static final String KEY_PREF_DEVICE_CIK = "cik";
+    public static final String KEY_PREF_DEVICE_NAME = "device_name";
     public static final String KEY_PREF_ACTION_COLOR = "action_color";
     public static final String KEY_PREF_LOGO_URL = "logo_url";
 
