@@ -179,7 +179,7 @@ public class AddDeviceActivity extends ActionBarActivity {
                     String email = sharedPreferences.getString("email", null);
                     String password = sharedPreferences.getString("password", null);
 
-                    mNewDevice = p.AddDevice(
+                    mNewDevice = p.addDevice(
                             portalRID,
                             vendor,
                             model,

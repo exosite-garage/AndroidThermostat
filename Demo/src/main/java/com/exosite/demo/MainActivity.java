@@ -10,6 +10,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -19,8 +20,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -45,6 +49,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
     /**
@@ -63,7 +68,10 @@ public class MainActivity extends ActionBarActivity {
      * Domain for interacting with Portals API
      */
     public static final String PORTALS_DOMAIN = "ti.exosite.com";
-
+    /**
+     * Polling interval for temperature data.
+     */
+    public static final int READ_INTERVAL_MILLISECONDS = 3000;
 
     private static final String TAG = "MainActivity";
     // TI device CIK
@@ -81,6 +89,8 @@ public class MainActivity extends ActionBarActivity {
     static Device mDevice = new Device();
     SharedPreferences.OnSharedPreferenceChangeListener listener;
     public static final String LOGO_FILENAME = "logo.png";
+    DrawerLayout mDrawerLayout;
+    ListView mDrawerList;
 
     private void deleteLogoFile() {
         File dir = getFilesDir();
@@ -113,7 +123,7 @@ public class MainActivity extends ActionBarActivity {
                 .getDefaultSharedPreferences(this);
         mEmail = sharedPreferences.getString("email", null);
         mPassword = sharedPreferences.getString("password", null);
-        boolean debug = true;
+        boolean debug = false;
         if (mEmail == null || mPassword == null || debug) {
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
@@ -131,6 +141,41 @@ public class MainActivity extends ActionBarActivity {
         }
 
         setContentView(R.layout.activity_main);
+
+        //mPlanetTitles = getResources().getStringArray(R.array.planets_array);
+        List<String> menuOptions = new ArrayList<String>();
+        menuOptions.add("Select Device");
+        menuOptions.add("Log out");
+
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawerList = (ListView) findViewById(R.id.left_drawer);
+
+        // Set the adapter for the list view
+        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
+                R.layout.drawer_list_item, menuOptions));
+        mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                Intent intent;
+                switch(i) {
+                    case 0:
+                        // select device
+                        // TODO: cancel read task
+                        intent = new Intent(getApplicationContext(), SelectDeviceActivity.class);
+                        startActivity(intent);
+                        break;
+                    case 1:
+                        // log out
+                        // TODO: cancel read task
+                        SharedPreferences sharedPreferences = PreferenceManager
+                                .getDefaultSharedPreferences(getApplicationContext());
+                        sharedPreferences.edit().remove("password").commit();
+                        intent = new Intent(getApplicationContext(), LoginActivity.class);
+                        startActivity(intent);
+                        break;
+                }
+            }
+        });
 
         if (savedInstanceState == null) {
             PlaceholderFragment frag = new PlaceholderFragment();
@@ -477,7 +522,7 @@ public class MainActivity extends ActionBarActivity {
                 } else {
                     displayError();
                 }
-                mReadHandler.postDelayed(mReadRunnable, 2000);
+                mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
             }
         }
 

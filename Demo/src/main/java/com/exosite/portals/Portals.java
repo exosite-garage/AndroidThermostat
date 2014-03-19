@@ -61,7 +61,7 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public JSONArray ListPortals(String email, String password)
+    public JSONArray listPortals(String email, String password)
             throws PortalsRequestException, PortalsResponseException {
         JSONArray response = null;
         HTTPResult r = call(mDomain, "portal/", "", email, password);
@@ -81,7 +81,7 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public void ResetPassword(String email)
+    public void resetPassword(String email)
             throws PortalsRequestException, PortalsResponseException {
         HTTPResult r = call(mDomain, "user/password",
                 String.format("{\"email\":\"%s\",\"action\":\"reset\"}", email));
@@ -99,9 +99,9 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public void SignUp(String email, String password, String plan)
+    public void signUp(String email, String password, String plan)
             throws PortalsRequestException, PortalsResponseException {
-        SignUp(email, password, plan, "", "");
+        signUp(email, password, plan, "", "");
     }
 
     /**
@@ -116,7 +116,7 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public void SignUp(String email, String password, String plan, String firstName, String lastName)
+    public void signUp(String email, String password, String plan, String firstName, String lastName)
             throws PortalsRequestException, PortalsResponseException {
         HTTPResult r = call(mDomain, "user",
                 String.format("{\"email\":\"%s\",\"password\":\"%s\",\"plan\":\"%s\",\"first_name\":\"%s\",\"last_name\":\"%s\"}",
@@ -138,7 +138,7 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public JSONObject AddDevice(String portalRID, String vendor, String model, String sn, String name, String email, String password)
+    public JSONObject addDevice(String portalRID, String vendor, String model, String sn, String name, String email, String password)
             throws PortalsRequestException, PortalsResponseException {
         HTTPResult r = call(mDomain, "device",
                 String.format("{\"portal_rid\":\"%s\",\"vendor\":\"%s\",\"model\":\"%s\",\"serialnumber\":\"%s\",\"name\":\"%s\"}",

@@ -26,8 +26,6 @@ import com.exosite.portals.PortalsResponseException;
 
 import org.json.JSONArray;
 
-import java.util.Random;
-
 /**
  * Activity which displays a login screen to the user, offering registration as
  * well.
@@ -63,9 +61,11 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.activity_login);
 
         // Set up the login form.
-        mEmail = "";
+        SharedPreferences sharedPreferences = PreferenceManager
+                .getDefaultSharedPreferences(LoginActivity.this);
+        mEmail = sharedPreferences.getString("email", "");
         mEmailView = (EditText) findViewById(R.id.email);
-        mEmailView.setText(mEmail); // String.format("danweaver+ti_%d@exosite.com", new Random().nextInt(100000)));
+        mEmailView.setText(mEmail);
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -247,10 +247,10 @@ public class LoginActivity extends Activity {
             try {
                 switch(loginTask[0]) {
                     case SignUp:
-                        p.SignUp(mEmail, mPassword, MainActivity.PLAN_ID);
+                        p.signUp(mEmail, mPassword, MainActivity.PLAN_ID);
                         return true;
                     case SignIn:
-                        mPortalList = p.ListPortals(mEmail, mPassword);
+                        mPortalList = p.listPortals(mEmail, mPassword);
                         return true;
                 }
             } catch (PortalsRequestException e) {
@@ -326,7 +326,7 @@ public class LoginActivity extends Activity {
             p.setDomain(MainActivity.PORTALS_DOMAIN);
             p.setTimeoutSeconds(15);
             try {
-                p.ResetPassword(mEmail);
+                p.resetPassword(mEmail);
             } catch (PortalsRequestException e) {
                 exception = e;
                 return false;

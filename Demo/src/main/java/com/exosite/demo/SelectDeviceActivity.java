@@ -133,7 +133,6 @@ public class SelectDeviceActivity extends ListActivity {
                     while (iter.hasNext()) {
                         String rid = iter.next();
                         JSONObject info = clientsInfoListing.getJSONObject(rid);
-                        Log.e(TAG, String.format("Inserting device %s...", info.getString("key")));
                         mDB.InsertDevice(
                                 rid,
                                 String.format("%s (%s...)",
