@@ -6,7 +6,6 @@
       <module fileurl="file://$PROJECT_DIR$/Demo/Demo.iml" filepath="$PROJECT_DIR$/Demo/Demo.iml" />
       <module fileurl="file://$PROJECT_DIR$/DemoProject.iml" filepath="$PROJECT_DIR$/DemoProject.iml" />
       <module fileurl="file://$PROJECT_DIR$/OnePlatformRPC/OnePlatformRPC.iml" filepath="$PROJECT_DIR$/OnePlatformRPC/OnePlatformRPC.iml" />
-      <module fileurl="file://$PROJECT_DIR$/OnePlatformRPC/OnePlatformRPC.iml" filepath="$PROJECT_DIR$/OnePlatformRPC/OnePlatformRPC.iml" />
       <module fileurl="file://$PROJECT_DIR$/Portals/Portals.iml" filepath="$PROJECT_DIR$/Portals/Portals.iml" />
     </modules>
   </component>
