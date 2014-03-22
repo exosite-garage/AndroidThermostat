@@ -3,7 +3,10 @@
 
     <string name="device_name">Name</string>
     <string name="device_portal">Portal</string>
+    <string name="device_vendor">Vendor</string>
+    <string name="device_model">Model</string>
     <string name="device_serial_number">Serial Number</string>
+    <string name="add_device_progress_adding_device">Adding device...</string>
 
     <string name="action_add_device">Add Device</string>
     <string name="app_name">Exosite</string>

@@ -18,6 +18,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.exosite.portals.Portals;
@@ -32,9 +33,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class AddDeviceActivity extends ActionBarActivity {
+public class AddDeviceActivity extends FormActivity {
     static JSONArray mPortalList;
     static final String TAG = "AddDeviceActivity";
+    static AddDeviceTask mAddDeviceTask;
+    EditText mNameEditText;
+    EditText mSerialNumberEditText;
+    EditText mVendorEditText;
+    EditText mModelEditText;
+    Spinner mPortalSpinner;
+    Button mAddDeviceButton;
+    View mAddDeviceFormView;
+    View mAddDeviceStatusView;
+    TextView mAddDeviceStatusMessageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,11 +63,60 @@ public class AddDeviceActivity extends ActionBarActivity {
 
         this.setTitle("Add Device");
 
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
-                    .commit();
+        mNameEditText = (EditText)findViewById(R.id.device_name);
+        mNameEditText.setText("Device Name");
+        mSerialNumberEditText = (EditText)findViewById(R.id.device_serial_number);
+        mSerialNumberEditText.setText(String.format("123123%06x", new Random().nextInt(0xffffff)));
+        mVendorEditText = (EditText)findViewById(R.id.device_vendor);
+        mVendorEditText.setText(MainActivity.VENDOR);
+        mModelEditText = (EditText)findViewById(R.id.device_model);
+        mModelEditText.setText(MainActivity.DEVICE_MODEL);
+
+        // populate spinner
+        mPortalSpinner = (Spinner)findViewById(R.id.device_portal);
+        List<String> SpinnerArray = new ArrayList<String>();
+        try {
+            for (int i = 0; i < mPortalList.length(); i++) {
+                JSONObject portal = mPortalList.getJSONObject(i);
+                SpinnerArray.add(String.format("%s (CIK: %s...)",
+                        portal.getString("name"),
+                        portal.getString("key").substring(0,8)));
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Exception while populating spinner: " + e.toString());
         }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                AddDeviceActivity.this,
+                android.R.layout.simple_spinner_item,
+                SpinnerArray);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mPortalSpinner.setAdapter(adapter);
+
+        mAddDeviceButton = (Button)findViewById(R.id.add_device_button);
+        mAddDeviceButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    String portalRID = mPortalList.getJSONObject(mPortalSpinner.getSelectedItemPosition()).getString("rid");
+                    String vendor = mVendorEditText.getText().toString();
+                    String model = mModelEditText.getText().toString();
+                    String sn = mSerialNumberEditText.getText().toString();
+                    String name = mNameEditText.getText().toString();
+
+                    mAddDeviceTask = new AddDeviceTask(
+                            AddDeviceActivity.this,
+                            getApplicationContext());
+                    showProgress(true);
+                    mAddDeviceTask.execute(portalRID, vendor, model, sn, name);
+
+                } catch (JSONException e) {
+                    Log.e(TAG, "Exception while handling add device click: " + e.toString());
+                }
+                //
+            }
+        });
+
     }
 
     @Override
@@ -73,180 +133,104 @@ public class AddDeviceActivity extends ActionBarActivity {
     }
 
     /**
-     * A placeholder fragment containing a simple view.
+     * Represents an asynchronous task to add a device.
      */
-    public static class PlaceholderFragment extends Fragment {
-        static AddDeviceTask mAddDeviceTask;
-        EditText mNameEditText;
-        EditText mSerialNumberEditText;
-        Spinner mPortalSpinner;
-        Button mAddDeviceButton;
+    public class AddDeviceTask extends AsyncTask<String, Void, Boolean> {
+        Exception exception;
+        JSONObject mNewDevice;
 
-        public PlaceholderFragment() {
-        }
-
-        void showProgress(boolean enabled) {
-            // TODO: show progress spinner
+        AddDeviceActivity mActivity;
+        Context mCtx;
+        public AddDeviceTask(AddDeviceActivity activity, Context ctx) {
+            mCtx = ctx;
+            mActivity = activity;
         }
 
         @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_add_device, container, false);
+        protected Boolean doInBackground(String... params) {
+            String portalRID = params[0];
+            String vendor = params[1];
+            String model = params[2];
+            String sn = params[3];
+            String name = params[4];
 
-            mNameEditText = (EditText)rootView.findViewById(R.id.device_name);
-            mNameEditText.setText("Device Name");
-            mSerialNumberEditText = (EditText)rootView.findViewById(R.id.device_serial_number);
-            mSerialNumberEditText.setText(String.format("123123%06x", new Random().nextInt(0xffffff)));
-
-            // populate spinner
-            mPortalSpinner = (Spinner)rootView.findViewById(R.id.device_portal);
-            List<String> SpinnerArray = new ArrayList<String>();
+            mNewDevice = null;
+            exception = null;
+            Portals p = new Portals();
+            p.setDomain(MainActivity.PORTALS_DOMAIN);
+            p.setTimeoutSeconds(15);
             try {
-                for (int i = 0; i < mPortalList.length(); i++) {
-                    JSONObject portal = mPortalList.getJSONObject(i);
-                    SpinnerArray.add(String.format("%s (CIK: %s...)",
-                            portal.getString("name"),
-                            portal.getString("key").substring(0,8)));
-                }
-            } catch (JSONException e) {
-                Log.e(TAG, "Exception while populating spinner: " + e.toString());
+                SharedPreferences sharedPreferences = PreferenceManager
+                        .getDefaultSharedPreferences(mActivity.getApplicationContext());
+                String email = sharedPreferences.getString("email", null);
+                String password = sharedPreferences.getString("password", null);
+
+                mNewDevice = p.addDevice(
+                        portalRID,
+                        vendor,
+                        model,
+                        sn,
+                        name,
+                        email,
+                        password);
+
+            } catch (PortalsRequestException e) {
+                exception = e;
+                return false;
+            } catch (PortalsResponseException e) {
+                exception = e;
+                return false;
             }
-
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-                    getActivity(),
-                    android.R.layout.simple_spinner_item,
-                    SpinnerArray);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            mPortalSpinner.setAdapter(adapter);
-
-            mAddDeviceButton = (Button)rootView.findViewById(R.id.add_device_button);
-            mAddDeviceButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    try {
-                        String portalRID = mPortalList.getJSONObject(mPortalSpinner.getSelectedItemPosition()).getString("rid");
-                        String vendor = MainActivity.VENDOR;
-                        String model = MainActivity.DEVICE_MODEL;
-                        String sn = mSerialNumberEditText.getText().toString();
-                        String name = mNameEditText.getText().toString();
-
-                        mAddDeviceTask = new AddDeviceTask(
-                                (AddDeviceActivity)getActivity(),
-                                getActivity().getApplicationContext());
-                        mAddDeviceTask.execute(portalRID, vendor, model, sn, name);
-
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Exception while handling add device click: " + e.toString());
-                    }
-                    //
-                }
-            });
-
-            return rootView;
+            return true;
         }
 
-        /**
-         * Represents an asynchronous task to add a device.
-         */
-        public class AddDeviceTask extends AsyncTask<String, Void, Boolean> {
-            Exception exception;
-            JSONObject mNewDevice;
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mAddDeviceTask = null;
+            showProgress(false);
 
-            AddDeviceActivity mActivity;
-            Context mCtx;
-            public AddDeviceTask(AddDeviceActivity activity, Context ctx) {
-                mCtx = ctx;
-                mActivity = activity;
-            }
-
-            @Override
-            protected Boolean doInBackground(String... params) {
-                String portalRID = params[0];
-                String vendor = params[1];
-                String model = params[2];
-                String sn = params[3];
-                String name = params[4];
-
-                mNewDevice = null;
-                exception = null;
-                Portals p = new Portals();
-                p.setDomain(MainActivity.PORTALS_DOMAIN);
-                p.setTimeoutSeconds(15);
+            if (success) {
                 try {
-                    SharedPreferences sharedPreferences = PreferenceManager
-                            .getDefaultSharedPreferences(mActivity.getApplicationContext());
-                    String email = sharedPreferences.getString("email", null);
-                    String password = sharedPreferences.getString("password", null);
-
-                    mNewDevice = p.addDevice(
-                            portalRID,
-                            vendor,
-                            model,
-                            sn,
-                            name,
-                            email,
-                            password);
-
-                } catch (PortalsRequestException e) {
-                    exception = e;
-                    return false;
-                } catch (PortalsResponseException e) {
-                    exception = e;
-                    return false;
-                }
-                return true;
-            }
-
-            @Override
-            protected void onPostExecute(final Boolean success) {
-                mAddDeviceTask = null;
-                showProgress(false);
-
-                if (success) {
-                    try {
-                        Toast.makeText(mCtx,
-                                String.format("Device created with CIK %s...",
+                    Toast.makeText(mCtx,
+                            String.format("Device created with CIK %s...",
                                     mNewDevice.getString("cik").substring(0, 8)),
-                                Toast.LENGTH_LONG).show();
+                            Toast.LENGTH_LONG).show();
 
-                        Intent intent = new Intent(mActivity, SelectDeviceActivity.class);
-                        startActivity(intent);
-                        mActivity.finish();
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Error getting cik: " + e.toString());
-                    }
-                } else {
-                    if (exception instanceof PortalsResponseException) {
-                        PortalsResponseException pre = (PortalsResponseException)exception;
-                        JSONObject errObj;
-                        try {
-                            errObj = new JSONObject(pre.getResponseBody());
-                            if (errObj != null) {
-                                Toast.makeText(mCtx,
-                                        String.format("Device not created. Reason: %s", errObj.getJSONArray("errors").getString(0)),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        } catch (JSONException e) {
-                            int code = pre.getResponseCode();
+                    Intent intent = new Intent(mActivity, SelectDeviceActivity.class);
+                    startActivity(intent);
+                    mActivity.finish();
+                } catch (JSONException e) {
+                    Log.e(TAG, "Error getting cik: " + e.toString());
+                }
+            } else {
+                if (exception instanceof PortalsResponseException) {
+                    PortalsResponseException pre = (PortalsResponseException)exception;
+                    JSONObject errObj;
+                    try {
+                        errObj = new JSONObject(pre.getResponseBody());
+                        if (errObj != null) {
                             Toast.makeText(mCtx,
-                                    String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
+                                    String.format("Device not created. Reason: %s", errObj.getJSONArray("errors").getString(0)),
+                                    Toast.LENGTH_LONG).show();
                         }
-
-
-                    } else {
+                    } catch (JSONException e) {
+                        int code = pre.getResponseCode();
                         Toast.makeText(mCtx,
-                                String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
+                                String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
                     }
+
+
+                } else {
+                    Toast.makeText(mCtx,
+                            String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
                 }
             }
+        }
 
-            @Override
-            protected void onCancelled() {
-                mAddDeviceTask = null;
-                showProgress(false);
-            }
+        @Override
+        protected void onCancelled() {
+            mAddDeviceTask = null;
+            showProgress(false);
         }
     }
-
 }

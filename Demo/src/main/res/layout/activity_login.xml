@@ -3,7 +3,7 @@
     tools:context="com.exosite.demo.LoginActivity">
 
     <!-- Login progress -->
-    <LinearLayout android:id="@+id/login_status"
+    <LinearLayout android:id="@+id/status"
         android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -26,11 +26,11 @@
 
     <!-- Login form -->
     <ScrollView
-        android:id="@+id/login_form"
+        android:id="@+id/form"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout style="@style/LoginFormContainer"
+        <LinearLayout style="@style/FormContainer"
             android:orientation="vertical">
 
             <EditText
