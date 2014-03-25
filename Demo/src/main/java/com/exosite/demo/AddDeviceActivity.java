@@ -22,6 +22,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.exosite.portals.Portals;
+import com.exosite.portals.PortalsCallback;
+import com.exosite.portals.PortalsException;
 import com.exosite.portals.PortalsRequestException;
 import com.exosite.portals.PortalsResponseException;
 
@@ -36,7 +38,6 @@ import java.util.Random;
 public class AddDeviceActivity extends FormActivity {
     static JSONArray mPortalList;
     static final String TAG = "AddDeviceActivity";
-    static AddDeviceTask mAddDeviceTask;
     EditText mNameEditText;
     EditText mSerialNumberEditText;
     EditText mVendorEditText;
@@ -103,12 +104,54 @@ public class AddDeviceActivity extends FormActivity {
                     String model = mModelEditText.getText().toString();
                     String sn = mSerialNumberEditText.getText().toString();
                     String name = mNameEditText.getText().toString();
+                    SharedPreferences sharedPreferences = PreferenceManager
+                            .getDefaultSharedPreferences(getApplicationContext());
+                    String email = sharedPreferences.getString("email", null);
+                    String password = sharedPreferences.getString("password", null);
 
-                    mAddDeviceTask = new AddDeviceTask(
-                            AddDeviceActivity.this,
-                            getApplicationContext());
                     showProgress(true);
-                    mAddDeviceTask.execute(portalRID, vendor, model, sn, name);
+                    Portals.addDeviceInBackground(portalRID, vendor, model, sn, name, email, password, new PortalsCallback<JSONObject>() {
+                        @Override
+                        public void done(JSONObject newDevice, PortalsException e) {
+                            showProgress(false);
+                            if (newDevice != null) {
+                                try {
+                                    Toast.makeText(getApplicationContext(),
+                                            String.format("Device created with CIK %s...",
+                                                    newDevice.getString("cik").substring(0, 8)),
+                                            Toast.LENGTH_LONG).show();
+
+                                    Intent intent = new Intent(AddDeviceActivity.this, SelectDeviceActivity.class);
+                                    startActivity(intent);
+                                    finish();
+                                } catch (JSONException je) {
+                                    Log.e(TAG, "Error getting CIK from created device: " + je.toString());
+                                }
+                            } else {
+                                if (e instanceof PortalsResponseException) {
+                                    PortalsResponseException pre = (PortalsResponseException)e;
+                                    JSONObject errObj;
+                                    try {
+                                        errObj = new JSONObject(pre.getResponseBody());
+                                        if (errObj != null) {
+                                            Toast.makeText(getApplicationContext(),
+                                                    String.format("Device not created. Reason: %s", errObj.getJSONArray("errors").getString(0)),
+                                                    Toast.LENGTH_LONG).show();
+                                        }
+                                    } catch (JSONException je) {
+                                        int code = pre.getResponseCode();
+                                        Toast.makeText(getApplicationContext(),
+                                                String.format("Error: %s (%d) caused JSONException %s",pre.getMessage(), code, je.getMessage()), Toast.LENGTH_LONG).show();
+                                    }
+
+
+                                } else {
+                                    Toast.makeText(getApplicationContext(),
+                                            String.format("Unexpected error: %s", e.getMessage()), Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        }
+                    });
 
                 } catch (JSONException e) {
                     Log.e(TAG, "Exception while handling add device click: " + e.toString());
@@ -132,105 +175,4 @@ public class AddDeviceActivity extends FormActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Represents an asynchronous task to add a device.
-     */
-    public class AddDeviceTask extends AsyncTask<String, Void, Boolean> {
-        Exception exception;
-        JSONObject mNewDevice;
-
-        AddDeviceActivity mActivity;
-        Context mCtx;
-        public AddDeviceTask(AddDeviceActivity activity, Context ctx) {
-            mCtx = ctx;
-            mActivity = activity;
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-            String portalRID = params[0];
-            String vendor = params[1];
-            String model = params[2];
-            String sn = params[3];
-            String name = params[4];
-
-            mNewDevice = null;
-            exception = null;
-            Portals p = new Portals();
-            p.setDomain(MainActivity.PORTALS_DOMAIN);
-            p.setTimeoutSeconds(15);
-            try {
-                SharedPreferences sharedPreferences = PreferenceManager
-                        .getDefaultSharedPreferences(mActivity.getApplicationContext());
-                String email = sharedPreferences.getString("email", null);
-                String password = sharedPreferences.getString("password", null);
-
-                mNewDevice = p.addDevice(
-                        portalRID,
-                        vendor,
-                        model,
-                        sn,
-                        name,
-                        email,
-                        password);
-
-            } catch (PortalsRequestException e) {
-                exception = e;
-                return false;
-            } catch (PortalsResponseException e) {
-                exception = e;
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAddDeviceTask = null;
-            showProgress(false);
-
-            if (success) {
-                try {
-                    Toast.makeText(mCtx,
-                            String.format("Device created with CIK %s...",
-                                    mNewDevice.getString("cik").substring(0, 8)),
-                            Toast.LENGTH_LONG).show();
-
-                    Intent intent = new Intent(mActivity, SelectDeviceActivity.class);
-                    startActivity(intent);
-                    mActivity.finish();
-                } catch (JSONException e) {
-                    Log.e(TAG, "Error getting cik: " + e.toString());
-                }
-            } else {
-                if (exception instanceof PortalsResponseException) {
-                    PortalsResponseException pre = (PortalsResponseException)exception;
-                    JSONObject errObj;
-                    try {
-                        errObj = new JSONObject(pre.getResponseBody());
-                        if (errObj != null) {
-                            Toast.makeText(mCtx,
-                                    String.format("Device not created. Reason: %s", errObj.getJSONArray("errors").getString(0)),
-                                    Toast.LENGTH_LONG).show();
-                        }
-                    } catch (JSONException e) {
-                        int code = pre.getResponseCode();
-                        Toast.makeText(mCtx,
-                                String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
-                    }
-
-
-                } else {
-                    Toast.makeText(mCtx,
-                            String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
-                }
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAddDeviceTask = null;
-            showProgress(false);
-        }
-    }
 }

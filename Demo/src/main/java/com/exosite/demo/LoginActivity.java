@@ -21,6 +21,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.exosite.portals.Portals;
+import com.exosite.portals.PortalsCallback;
+import com.exosite.portals.PortalsException;
 import com.exosite.portals.PortalsRequestException;
 import com.exosite.portals.PortalsResponseException;
 
@@ -40,8 +42,8 @@ public class LoginActivity extends FormActivity {
     /**
      * Keep track of the login and password recovery tasks so we can cancel them if requested.
      */
-    private UserLoginTask mAuthTask = null;
-    private ResetPasswordTask mResetPasswordTask = null;
+
+    private boolean mInProgress;
 
     // Values for email and password at the time of the login attempt.
     private String mEmail;
@@ -101,27 +103,70 @@ public class LoginActivity extends FormActivity {
                 // Show a progress spinner, and kick off a background task to
                 // perform the password recovery email attempt.
                 mLoginStatusMessageView.setText(R.string.login_progress_recovering_password);
-                showProgress(true);
+
                 // Store value at the time of the reset attempt.
                 mEmail = mEmailView.getText().toString();
-                mResetPasswordTask = new ResetPasswordTask();
-                mResetPasswordTask.execute((Void) null);
+
+                showProgress(true);
+                Portals.resetPasswordInBackground(mEmail, new PortalsCallback<Void>() {
+                    @Override
+                    public void done(Void result, PortalsException e) {
+                        mInProgress = false;
+                        showProgress(false);
+                        if (result != null) {
+                            Toast.makeText(getApplicationContext(),
+                                    String.format("Password recovery email sent to %s", mEmail), Toast.LENGTH_LONG).show();
+                        } else {
+                            reportPortalsException(e);
+                        }
+                    }
+                });
 
                 return true;
             case R.id.action_sign_up:
                 // Show a progress spinner
                 mLoginStatusMessageView.setText(R.string.login_progress_signing_up);
-                showProgress(true);
+
                 // Store value at the time of the reset attempt.
                 mEmail = mEmailView.getText().toString();
                 mPassword = mPasswordView.getText().toString();
 
-                mAuthTask = new UserLoginTask();
-                mAuthTask.execute(LoginTask.SignUp);
+                showProgress(true);
+                Portals.signUpInBackground(mEmail, mPassword, MainActivity.PLAN_ID, new PortalsCallback<Void>() {
+                    @Override
+                    public void done(Void result, PortalsException e) {
+                        mInProgress = false;
+                        showProgress(false);
+                        if (result != null) {
+                            Toast.makeText(getApplicationContext(),
+                                    String.format("Sent confirmation email to %s", mEmail), Toast.LENGTH_LONG).show();
+                        } else {
+                            reportPortalsException(e);
+                        }
+                    }
+                });
 
+                showProgress(false);
                 return true;
         }
         return false;
+    }
+
+    public void reportPortalsException(Exception e) {
+        if (e instanceof PortalsResponseException) {
+            PortalsResponseException pre = (PortalsResponseException) e;
+            int code = pre.getResponseCode();
+            if (code == 401) {
+                Toast.makeText(getApplicationContext(),
+                        String.format(getString(R.string.error_unauthorized)), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(getApplicationContext(),
+                        String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
+            }
+        } else {
+            Toast.makeText(getApplicationContext(),
+                    String.format("Unexpected error: %s", e.getMessage()), Toast.LENGTH_LONG).show();
+        }
     }
 
     /**
@@ -130,7 +175,7 @@ public class LoginActivity extends FormActivity {
      * errors are presented and no actual login attempt is made.
      */
     public void attemptLogin() {
-        if (mAuthTask != null) {
+        if (mInProgress) {
             return;
         }
 
@@ -176,149 +221,27 @@ public class LoginActivity extends FormActivity {
             // perform the user login attempt.
             mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
             showProgress(true);
-            mAuthTask = new UserLoginTask();
-            mAuthTask.execute(LoginTask.SignIn);
-        }
-    }
+            Portals.setDomain(MainActivity.PORTALS_DOMAIN);
+            mInProgress = true;
+            Portals.listPortalsInBackground(mEmail, mPassword, new PortalsCallback<JSONArray>() {
+                @Override
+                public void done(JSONArray result, PortalsException e) {
+                    mInProgress = false;
+                    if (result != null) {
+                        SharedPreferences sharedPreferences = PreferenceManager
+                                .getDefaultSharedPreferences(LoginActivity.this);
+                        sharedPreferences.edit().putString("email", mEmail).commit();
+                        sharedPreferences.edit().putString("password", mPassword).commit();
+                        sharedPreferences.edit().putString("portal_list", result.toString()).commit();
 
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<LoginTask, Void, Boolean> {
-        JSONArray mPortalList = null;
-        Exception mException;
-        LoginTask mTask;
-
-        @Override
-        protected Boolean doInBackground(LoginTask... loginTask) {
-            mPortalList = null;
-            mException = null;
-            mTask = loginTask[0];
-
-            Portals p = new Portals();
-            p.setDomain(MainActivity.PORTALS_DOMAIN);
-            p.setTimeoutSeconds(15);
-
-            try {
-                switch(loginTask[0]) {
-                    case SignUp:
-                        p.signUp(mEmail, mPassword, MainActivity.PLAN_ID);
-                        return true;
-                    case SignIn:
-                        mPortalList = p.listPortals(mEmail, mPassword);
-                        return true;
-                }
-            } catch (PortalsRequestException e) {
-                mException = e;
-                return false;
-            } catch (PortalsResponseException e) {
-                mException = e;
-                return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                SharedPreferences sharedPreferences = PreferenceManager
-                        .getDefaultSharedPreferences(LoginActivity.this);
-                sharedPreferences.edit().putString("email", mEmail).commit();
-                sharedPreferences.edit().putString("password", mPassword).commit();
-                if (mTask == LoginTask.SignIn) {
-
-                    sharedPreferences.edit().putString("portal_list", mPortalList.toString()).commit();
-
-                    Intent intent = new Intent(LoginActivity.this, SelectDeviceActivity.class);
-                    startActivity(intent);
-                    finish();
-
-                } else {
-                    Toast.makeText(getApplicationContext(),
-                            String.format("Sent confirmation email to %s", mEmail), Toast.LENGTH_LONG).show();
-                }
-
-            } else {
-                if (mException instanceof PortalsResponseException) {
-                    PortalsResponseException pre = (PortalsResponseException) mException;
-                    int code = pre.getResponseCode();
-                    if (code == 401) {
-                        Toast.makeText(getApplicationContext(),
-                                String.format(getString(R.string.error_unauthorized)), Toast.LENGTH_LONG).show();
+                        Intent intent = new Intent(LoginActivity.this, SelectDeviceActivity.class);
+                        startActivity(intent);
+                        finish();
                     } else {
-                        Toast.makeText(getApplicationContext(),
-                                String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
+                        reportPortalsException(e);
                     }
-                } else {
-
-                    Toast.makeText(getApplicationContext(),
-                            String.format("Unexpected error: %s", mException.getMessage()), Toast.LENGTH_LONG).show();
                 }
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
-
-    /**
-     * Represents an asynchronous task used to request password recovery email.
-     */
-    public class ResetPasswordTask extends AsyncTask<Void, Void, Boolean> {
-        Exception exception;
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            exception = null;
-            Portals p = new Portals();
-            p.setDomain(MainActivity.PORTALS_DOMAIN);
-            p.setTimeoutSeconds(15);
-            try {
-                p.resetPassword(mEmail);
-            } catch (PortalsRequestException e) {
-                exception = e;
-                return false;
-            } catch (PortalsResponseException e) {
-                exception = e;
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mResetPasswordTask = null;
-            showProgress(false);
-
-            if (success) {
-                Toast.makeText(getApplicationContext(),
-                        String.format("Password recovery email sent to %s", mEmail), Toast.LENGTH_LONG).show();
-                finish();
-            } else {
-                if (exception instanceof PortalsResponseException) {
-                    PortalsResponseException pre = (PortalsResponseException)exception;
-                    int code = pre.getResponseCode();
-                    Toast.makeText(getApplicationContext(),
-                            String.format("Error: %s (%d)",pre.getMessage(), code), Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(getApplicationContext(),
-                            String.format("Unexpected error: %s",exception.getMessage()), Toast.LENGTH_LONG).show();
-                }
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mResetPasswordTask = null;
-            showProgress(false);
+            });
         }
     }
 }

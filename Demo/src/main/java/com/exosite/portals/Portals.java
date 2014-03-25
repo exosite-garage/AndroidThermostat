@@ -7,6 +7,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+
+import android.os.AsyncTask;
 import android.util.Base64;
 
 import org.json.JSONArray;
@@ -17,38 +19,58 @@ import org.json.JSONObject;
  * Provides access to the Portals API
  */
 public class Portals {
-    String mDomain = "portals.exosite.com";
-    int mTimeoutSeconds = 15;
+    static String mDomain = "portals.exosite.com";
+    static int mTimeoutSeconds = 15;
 
     /**
      * @return Portals domain configured for communication
      */
-    public String getDomain() {
+    public static String getDomain() {
         return mDomain;
     }
 
     /**
      * @param domain Portals domain configured for API communication
      */
-    public void setDomain(String domain) {
+    public static void setDomain(String domain) {
         mDomain = domain;
     }
 
     /**
      * @return HTTP timeout for calls to Portals API
      */
-    public int getTimeoutSeconds() {
+    public static int getTimeoutSeconds() {
         return mTimeoutSeconds;
     }
 
     /**
      * @param timeoutSeconds HTTP timeout for calls to Portals API
      */
-    public void setTimeoutSeconds(int timeoutSeconds) {
+    public static void setTimeoutSeconds(int timeoutSeconds) {
         mTimeoutSeconds = timeoutSeconds;
     }
 
-    public Portals() {
+    private Portals() {
+    }
+
+    protected static class PortalsCall<T> {
+        public PortalsCall(PortalsCallback<T> callback) {
+            mCallback = callback;
+        }
+        private PortalsCallback<T> mCallback;
+        PortalsCallback<T> getCallback() {
+            return mCallback;
+        }
+        public T call() throws PortalsException {
+            return null;
+        }
+        public void callInBackground() {
+            PortalsTask task = new PortalsTask();
+            task.execute(this);
+        }
+        protected void handleException(PortalsException e) {
+            mCallback.done(null, e);
+        }
     }
 
     /**
@@ -61,7 +83,7 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public JSONArray listPortals(String email, String password)
+    static public JSONArray listPortals(String email, String password)
             throws PortalsRequestException, PortalsResponseException {
         JSONArray response = null;
         HTTPResult r = call(mDomain, "portal/", "", email, password);
@@ -75,16 +97,60 @@ public class Portals {
     }
 
     /**
+     * List a user's portals
+     *
+     * @param email    - email address of user to authenticate
+     * @param password - portals password of user
+     * @param callback - handler for successful completion or exception condition
+     * @return JSONArray of  JSONObjects containing information about user's
+     * managed and owned portals.
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public void listPortalsInBackground(
+            final String email,
+            final String password,
+            final PortalsCallback<JSONArray> callback) {
+
+        new PortalsCall<JSONArray>(callback) {
+            @Override
+            public JSONArray call() throws PortalsException {
+                return listPortals(email, password);
+            }
+        }.callInBackground();
+
+    }
+
+    /**
      * Generate an email to a Portals user to reset their password.
      *
      * @param email - email address to reset
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public void resetPassword(String email)
+    static public void resetPassword(final String email)
             throws PortalsRequestException, PortalsResponseException {
         HTTPResult r = call(mDomain, "user/password",
                 String.format("{\"email\":\"%s\",\"action\":\"reset\"}", email));
+    }
+
+    /**
+     * Generate an email to a Portals user to reset their password.
+     *
+     * @param email - email address to reset
+     * @param callback - handler for successful completion or exception condition
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public void resetPasswordInBackground(final String email,
+                                          final PortalsCallback<Void> callback) {
+        new PortalsCall<Void>(callback) {
+            @Override
+            public Void call() throws PortalsException {
+                resetPassword(email);
+                return null;
+            }
+        }.callInBackground();
     }
 
     /**
@@ -99,9 +165,35 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public void signUp(String email, String password, String plan)
+    static public void signUp(final String email, final String password, final String plan)
             throws PortalsRequestException, PortalsResponseException {
         signUp(email, password, plan, "", "");
+    }
+
+    /**
+     * Sign up a new Portals user on the configured domain. Since first
+     * and last name are not specified, Portals will set them to "New"
+     * and "User", respectively.
+     *
+     * @param email    - email address of user. This may not already
+     *                   exist as a user in Portals.
+     * @param password - password for user. UIs may want to confirm password.
+     * @param plan     - Portals plan identifier for new user.
+     * @param callback - handler for successful completion or exception condition
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public void signUpInBackground(final String email,
+                                          final String password,
+                                          final String plan,
+                                          final PortalsCallback<Void> callback) {
+        new PortalsCall<Void>(callback) {
+            @Override
+            public Void call() throws PortalsException {
+                signUp(email, password, plan);
+                return null;
+            }
+        }.callInBackground();
     }
 
     /**
@@ -116,11 +208,40 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public void signUp(String email, String password, String plan, String firstName, String lastName)
+    static public void signUp(String email, String password, String plan, String firstName, String lastName)
             throws PortalsRequestException, PortalsResponseException {
         HTTPResult r = call(mDomain, "user",
                 String.format("{\"email\":\"%s\",\"password\":\"%s\",\"plan\":\"%s\",\"first_name\":\"%s\",\"last_name\":\"%s\"}",
                         email, password, plan, firstName, lastName));
+    }
+
+    /**
+     * Sign up a new Portals user on the configured domain.
+     *
+     * @param email     - email address of new user. This may not already
+     *                    be registered in Portals.
+     * @param password  - password for user. UIs may want to confirm password.
+     * @param plan      - Portals plan identifier for new user.
+     * @param firstName - first name of new user
+     * @param lastName  - last name of new user
+     * @param callback - handler for successful completion or exception condition
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public void signUpInBackground(final String email,
+                                   final String password,
+                                   final String plan,
+                                   final String firstName,
+                                   final String lastName,
+                                   final PortalsCallback<Void> callback) {
+
+        new PortalsCall<Void>(callback) {
+            @Override
+            public Void call() throws PortalsException {
+                signUp(email, password, plan, firstName, lastName);
+                return null;
+            }
+        }.callInBackground();
     }
 
     /**
@@ -138,7 +259,13 @@ public class Portals {
      * @throws PortalsRequestException
      * @throws PortalsResponseException
      */
-    public JSONObject addDevice(String portalRID, String vendor, String model, String sn, String name, String email, String password)
+    static public JSONObject addDevice(final String portalRID,
+                                final String vendor,
+                                final String model,
+                                final String sn,
+                                final String name,
+                                final String email,
+                                final String password)
             throws PortalsRequestException, PortalsResponseException {
         HTTPResult r = call(mDomain, "device",
                 String.format("{\"portal_rid\":\"%s\",\"vendor\":\"%s\",\"model\":\"%s\",\"serialnumber\":\"%s\",\"name\":\"%s\"}",
@@ -153,7 +280,39 @@ public class Portals {
         return response;
     }
 
-    public class HTTPResult {
+    /**
+     * Add a new device to a user's portal.
+     *
+     * @param portalRID - identifier of portal where device should be added
+     * @param vendor    - vendor identifier
+     * @param model     - model identifier
+     * @param sn        - serial number. This must match one of the sets of valid
+     *                    serial numbers configured for the model.
+     * @param name      - name of device
+     * @param email     - email address of user to authenticate
+     * @param password  - portals password of user
+     * @param callback - handler for successful completion or exception condition
+     * @return JSONObject containing "rid" - RID of the new device and "cik" - client key for new device
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public void addDeviceInBackground(final String portalRID,
+                                final String vendor,
+                                final String model,
+                                final String sn,
+                                final String name,
+                                final String email,
+                                final String password,
+                                final PortalsCallback<JSONObject> callback) {
+        new PortalsCall<JSONObject>(callback) {
+            @Override
+            public JSONObject call() throws PortalsException {
+                return addDevice(portalRID, vendor, model, sn, name, email, password);
+            }
+        }.callInBackground();
+    }
+
+    private static class HTTPResult {
         public int responseCode;
         public String responseBody;
     }
@@ -168,7 +327,7 @@ public class Portals {
      * @throws PortalsResponseException if the response status was >=300 or an exception was
      *         thrown while reading the response
      */
-    public HTTPResult call(String domain, String path, String body)
+    public static HTTPResult call(String domain, String path, String body)
             throws PortalsRequestException, PortalsResponseException {
         return call(domain, path, body, null, null);
     }
@@ -185,7 +344,7 @@ public class Portals {
      * @throws PortalsResponseException if the response status was >=300 or an exception was
      *         thrown while reading the response
      */
-    public HTTPResult call(String domain, String path, String body, String email, String password)
+    public static HTTPResult call(String domain, String path, String body, String email, String password)
             throws PortalsRequestException, PortalsResponseException {
         URL url = null;
         HttpURLConnection conn = null;
@@ -206,7 +365,7 @@ public class Portals {
                 conn.setRequestProperty("Authorization", "Basic " + encoded);
             }
             conn.setUseCaches(false);
-            conn.setConnectTimeout(this.mTimeoutSeconds * 1000);
+            conn.setConnectTimeout(Portals.mTimeoutSeconds * 1000);
             conn.setRequestProperty("User-Agent", "Android demo app");
             if (body.length() > 0) {
                 conn.setRequestMethod("POST");
@@ -273,5 +432,35 @@ public class Portals {
         }
         result.responseBody = response.toString();
         return result;
+    }
+
+    /**
+     * Represents an asynchronous task for doing an api call in the background.
+     */
+    private static class PortalsTask<T> extends AsyncTask<Object, Void, Boolean> {
+        T mResult = null;
+        PortalsException mException;
+        PortalsCall<T> mCall;
+
+        @Override
+        protected Boolean doInBackground(Object... calls) {
+            mResult = null;
+            mException = null;
+            mCall = (PortalsCall<T>)calls[0];
+
+            try {
+                mResult = mCall.call();
+            } catch (PortalsException e) {
+                mException = e;
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mCall.getCallback().done(mResult, mException);
+        }
     }
 }

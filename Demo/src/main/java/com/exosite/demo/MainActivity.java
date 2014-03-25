@@ -34,6 +34,7 @@ import com.exosite.onepv1.HttpRPCResponseException;
 import com.exosite.onepv1.OnePlatformException;
 import com.exosite.onepv1.OnePlatformRPC;
 import com.exosite.onepv1.Result;
+import com.exosite.portals.Portals;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -135,6 +136,9 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // configure the domain for Portals API calls
+        Portals.setDomain(MainActivity.PORTALS_DOMAIN);
 
         if ( !getLogin() ) {
             return;
