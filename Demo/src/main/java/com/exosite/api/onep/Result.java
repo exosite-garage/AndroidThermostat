@@ -1,4 +1,4 @@
-package com.exosite.onepv1;
+package com.exosite.api.onep;
 
 /**
  * Represents a result from the OneP RPC

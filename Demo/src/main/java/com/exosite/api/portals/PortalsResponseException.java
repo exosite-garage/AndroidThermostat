@@ -1,6 +1,8 @@
-package com.exosite.portals;
+package com.exosite.api.portals;
 
-public class PortalsResponseException extends PortalsException {
+import com.exosite.api.ExoException;
+
+public class PortalsResponseException extends ExoException {
     /**
      * @return HTTP response code
      */

@@ -1,4 +1,4 @@
-package com.exosite.portals;
+package com.exosite.api.portals;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,8 +8,11 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import android.os.AsyncTask;
 import android.util.Base64;
+
+import com.exosite.api.ExoCall;
+import com.exosite.api.ExoException;
+import com.exosite.api.ExoCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,26 +56,6 @@ public class Portals {
     private Portals() {
     }
 
-    protected static class PortalsCall<T> {
-        public PortalsCall(PortalsCallback<T> callback) {
-            mCallback = callback;
-        }
-        private PortalsCallback<T> mCallback;
-        PortalsCallback<T> getCallback() {
-            return mCallback;
-        }
-        public T call() throws PortalsException {
-            return null;
-        }
-        public void callInBackground() {
-            PortalsTask task = new PortalsTask();
-            task.execute(this);
-        }
-        protected void handleException(PortalsException e) {
-            mCallback.done(null, e);
-        }
-    }
-
     /**
      * List a user's portals
      *
@@ -110,11 +93,11 @@ public class Portals {
     static public void listPortalsInBackground(
             final String email,
             final String password,
-            final PortalsCallback<JSONArray> callback) {
+            final ExoCallback<JSONArray> callback) {
 
-        new PortalsCall<JSONArray>(callback) {
+        new ExoCall<JSONArray>(callback) {
             @Override
-            public JSONArray call() throws PortalsException {
+            public JSONArray call() throws ExoException {
                 return listPortals(email, password);
             }
         }.callInBackground();
@@ -143,10 +126,10 @@ public class Portals {
      * @throws PortalsResponseException
      */
     static public void resetPasswordInBackground(final String email,
-                                          final PortalsCallback<Void> callback) {
-        new PortalsCall<Void>(callback) {
+                                                 final ExoCallback<Void> callback) {
+        new ExoCall<Void>(callback) {
             @Override
-            public Void call() throws PortalsException {
+            public Void call() throws ExoException {
                 resetPassword(email);
                 return null;
             }
@@ -186,10 +169,10 @@ public class Portals {
     static public void signUpInBackground(final String email,
                                           final String password,
                                           final String plan,
-                                          final PortalsCallback<Void> callback) {
-        new PortalsCall<Void>(callback) {
+                                          final ExoCallback<Void> callback) {
+        new ExoCall<Void>(callback) {
             @Override
-            public Void call() throws PortalsException {
+            public Void call() throws ExoException {
                 signUp(email, password, plan);
                 return null;
             }
@@ -233,11 +216,11 @@ public class Portals {
                                    final String plan,
                                    final String firstName,
                                    final String lastName,
-                                   final PortalsCallback<Void> callback) {
+                                   final ExoCallback<Void> callback) {
 
-        new PortalsCall<Void>(callback) {
+        new ExoCall<Void>(callback) {
             @Override
-            public Void call() throws PortalsException {
+            public Void call() throws ExoException {
                 signUp(email, password, plan, firstName, lastName);
                 return null;
             }
@@ -303,10 +286,10 @@ public class Portals {
                                 final String name,
                                 final String email,
                                 final String password,
-                                final PortalsCallback<JSONObject> callback) {
-        new PortalsCall<JSONObject>(callback) {
+                                final ExoCallback<JSONObject> callback) {
+        new ExoCall<JSONObject>(callback) {
             @Override
-            public JSONObject call() throws PortalsException {
+            public JSONObject call() throws ExoException {
                 return addDevice(portalRID, vendor, model, sn, name, email, password);
             }
         }.callInBackground();
@@ -432,35 +415,5 @@ public class Portals {
         }
         result.responseBody = response.toString();
         return result;
-    }
-
-    /**
-     * Represents an asynchronous task for doing an api call in the background.
-     */
-    private static class PortalsTask<T> extends AsyncTask<Object, Void, Boolean> {
-        T mResult = null;
-        PortalsException mException;
-        PortalsCall<T> mCall;
-
-        @Override
-        protected Boolean doInBackground(Object... calls) {
-            mResult = null;
-            mException = null;
-            mCall = (PortalsCall<T>)calls[0];
-
-            try {
-                mResult = mCall.call();
-            } catch (PortalsException e) {
-                mException = e;
-                return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mCall.getCallback().done(mResult, mException);
-        }
     }
 }

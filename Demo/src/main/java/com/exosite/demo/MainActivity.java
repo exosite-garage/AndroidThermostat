@@ -1,6 +1,5 @@
 package com.exosite.demo;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -29,12 +28,12 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.exosite.onepv1.HttpRPCRequestException;
-import com.exosite.onepv1.HttpRPCResponseException;
-import com.exosite.onepv1.OnePlatformException;
-import com.exosite.onepv1.OnePlatformRPC;
-import com.exosite.onepv1.Result;
-import com.exosite.portals.Portals;
+import com.exosite.api.onep.RPCRequestException;
+import com.exosite.api.onep.RPCResponseException;
+import com.exosite.api.onep.OnePlatformException;
+import com.exosite.api.onep.OnePlatformRPC;
+import com.exosite.api.onep.Result;
+import com.exosite.api.portals.Portals;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -442,12 +441,12 @@ public class MainActivity extends ActionBarActivity {
                 } catch (JSONException e) {
                     this.exception = e;
                     Log.e(TAG, "Caught JSONException before sending request. Message:" + e.getMessage());
-                } catch (HttpRPCRequestException e) {
+                } catch (RPCRequestException e) {
                     this.exception = e;
-                    Log.e(TAG, "Caught HttpRPCRequestException " + e.getMessage());
-                } catch (HttpRPCResponseException e) {
+                    Log.e(TAG, "Caught RPCRequestException " + e.getMessage());
+                } catch (RPCResponseException e) {
                     this.exception = e;
-                    Log.e(TAG, "Caught HttpRPCResponseException " + e.getMessage());
+                    Log.e(TAG, "Caught RPCResponseException " + e.getMessage());
                 }
 
                 if (responseBody != null) {
@@ -563,12 +562,12 @@ public class MainActivity extends ActionBarActivity {
                 } catch (JSONException e) {
                     this.exception = e;
                     Log.e(TAG, "Caught JSONException before sending request. Message:" + e.getMessage());
-                } catch (HttpRPCRequestException e) {
+                } catch (RPCRequestException e) {
                     this.exception = e;
-                    Log.e(TAG, "Caught HttpRPCRequestException " + e.getMessage());
-                } catch (HttpRPCResponseException e) {
+                    Log.e(TAG, "Caught RPCRequestException " + e.getMessage());
+                } catch (RPCResponseException e) {
                     this.exception = e;
-                    Log.e(TAG, "Caught HttpRPCResponseException " + e.getMessage());
+                    Log.e(TAG, "Caught RPCResponseException " + e.getMessage());
                 }
 
                 if (responseBody != null) {

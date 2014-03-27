@@ -1,4 +1,4 @@
-package com.exosite.onepv1;
+package com.exosite.api.onep;
 
 /*
   Base class for One Platform RPC API exceptions.

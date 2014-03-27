@@ -1,13 +1,7 @@
 package com.exosite.demo;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
@@ -20,11 +14,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.exosite.portals.Portals;
-import com.exosite.portals.PortalsCallback;
-import com.exosite.portals.PortalsException;
-import com.exosite.portals.PortalsRequestException;
-import com.exosite.portals.PortalsResponseException;
+import com.exosite.api.portals.Portals;
+import com.exosite.api.ExoCallback;
+import com.exosite.api.ExoException;
+import com.exosite.api.portals.PortalsResponseException;
 
 import org.json.JSONArray;
 
@@ -108,16 +101,16 @@ public class LoginActivity extends FormActivity {
                 mEmail = mEmailView.getText().toString();
 
                 showProgress(true);
-                Portals.resetPasswordInBackground(mEmail, new PortalsCallback<Void>() {
+                Portals.resetPasswordInBackground(mEmail, new ExoCallback<Void>() {
                     @Override
-                    public void done(Void result, PortalsException e) {
+                    public void done(Void result, ExoException e) {
                         mInProgress = false;
                         showProgress(false);
                         if (result != null) {
                             Toast.makeText(getApplicationContext(),
                                     String.format("Password recovery email sent to %s", mEmail), Toast.LENGTH_LONG).show();
                         } else {
-                            reportPortalsException(e);
+                            reportExoException(e);
                         }
                     }
                 });
@@ -132,16 +125,16 @@ public class LoginActivity extends FormActivity {
                 mPassword = mPasswordView.getText().toString();
 
                 showProgress(true);
-                Portals.signUpInBackground(mEmail, mPassword, MainActivity.PLAN_ID, new PortalsCallback<Void>() {
+                Portals.signUpInBackground(mEmail, mPassword, MainActivity.PLAN_ID, new ExoCallback<Void>() {
                     @Override
-                    public void done(Void result, PortalsException e) {
+                    public void done(Void result, ExoException e) {
                         mInProgress = false;
                         showProgress(false);
                         if (result != null) {
                             Toast.makeText(getApplicationContext(),
                                     String.format("Sent confirmation email to %s", mEmail), Toast.LENGTH_LONG).show();
                         } else {
-                            reportPortalsException(e);
+                            reportExoException(e);
                         }
                     }
                 });
@@ -152,7 +145,7 @@ public class LoginActivity extends FormActivity {
         return false;
     }
 
-    public void reportPortalsException(Exception e) {
+    public void reportExoException(Exception e) {
         if (e instanceof PortalsResponseException) {
             PortalsResponseException pre = (PortalsResponseException) e;
             int code = pre.getResponseCode();
@@ -223,9 +216,9 @@ public class LoginActivity extends FormActivity {
             showProgress(true);
             Portals.setDomain(MainActivity.PORTALS_DOMAIN);
             mInProgress = true;
-            Portals.listPortalsInBackground(mEmail, mPassword, new PortalsCallback<JSONArray>() {
+            Portals.listPortalsInBackground(mEmail, mPassword, new ExoCallback<JSONArray>() {
                 @Override
-                public void done(JSONArray result, PortalsException e) {
+                public void done(JSONArray result, ExoException e) {
                     mInProgress = false;
                     if (result != null) {
                         SharedPreferences sharedPreferences = PreferenceManager
@@ -238,7 +231,7 @@ public class LoginActivity extends FormActivity {
                         startActivity(intent);
                         finish();
                     } else {
-                        reportPortalsException(e);
+                        reportExoException(e);
                     }
                 }
             });

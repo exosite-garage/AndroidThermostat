@@ -17,8 +17,8 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.exosite.onepv1.OneException;
-import com.exosite.onepv1.OnePlatformRPC;
+import com.exosite.api.onep.OneException;
+import com.exosite.api.onep.OnePlatformRPC;
 
 import org.json.JSONArray;
 import org.json.JSONException;

@@ -1,19 +1,13 @@
 package com.exosite.demo;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,11 +15,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.exosite.portals.Portals;
-import com.exosite.portals.PortalsCallback;
-import com.exosite.portals.PortalsException;
-import com.exosite.portals.PortalsRequestException;
-import com.exosite.portals.PortalsResponseException;
+import com.exosite.api.portals.Portals;
+import com.exosite.api.ExoCallback;
+import com.exosite.api.ExoException;
+import com.exosite.api.portals.PortalsResponseException;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -110,9 +103,9 @@ public class AddDeviceActivity extends FormActivity {
                     String password = sharedPreferences.getString("password", null);
 
                     showProgress(true);
-                    Portals.addDeviceInBackground(portalRID, vendor, model, sn, name, email, password, new PortalsCallback<JSONObject>() {
+                    Portals.addDeviceInBackground(portalRID, vendor, model, sn, name, email, password, new ExoCallback<JSONObject>() {
                         @Override
-                        public void done(JSONObject newDevice, PortalsException e) {
+                        public void done(JSONObject newDevice, ExoException e) {
                             showProgress(false);
                             if (newDevice != null) {
                                 try {

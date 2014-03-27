@@ -9,12 +9,12 @@
 * All rights reserved.
 */
 
-package com.exosite.onepv1;
+package com.exosite.api.onep;
 
 @SuppressWarnings("serial")
-public class HttpRPCRequestException extends OneException {
+public class RPCRequestException extends OneException {
 
-	public HttpRPCRequestException(final String message) {
+	public RPCRequestException(final String message) {
 		super(message);
 	}
 }

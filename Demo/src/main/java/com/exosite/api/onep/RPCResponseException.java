@@ -1,6 +1,6 @@
 /*=============================================================================
-* OnePlatformException.java
-* Exception class for error message from one platform.
+* HttpRPCResponseException.java
+* Exception class for http response failure.
 *==============================================================================
 *
 * Tested with JDK 1.6
@@ -9,12 +9,12 @@
 * All rights reserved.
 */
 
-package com.exosite.onepv1;
+package com.exosite.api.onep;
 
 @SuppressWarnings("serial")
-public class OnePlatformException extends OneException {
+public class RPCResponseException extends OneException {
 
-	public OnePlatformException(final String message) {
+	public RPCResponseException(final String message) {
 		super(message);
 	}
 }

@@ -1,4 +1,4 @@
-package com.exosite.onepv1;
+package com.exosite.api.onep;
 
 import android.util.Log;
 
@@ -10,7 +10,6 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.List;
 
@@ -40,7 +39,7 @@ public class OnePlatformRPC {
     }
 
     public String callRPC(String request)
-            throws HttpRPCRequestException, HttpRPCResponseException {
+            throws RPCRequestException, RPCResponseException {
         URL url = null;
         HttpURLConnection conn = null;
         OutputStreamWriter writer = null;
@@ -48,7 +47,7 @@ public class OnePlatformRPC {
         try {
             url = new URL(this.mURL);
         } catch (MalformedURLException ex) {
-            throw new HttpRPCRequestException("Malformed URL.");
+            throw new RPCRequestException("Malformed URL.");
         }
         try {
             conn = (HttpURLConnection) url.openConnection();
@@ -64,7 +63,7 @@ public class OnePlatformRPC {
                 writer.write(request);
                 writer.flush();
             } catch (IOException e) {
-                throw new HttpRPCRequestException(
+                throw new RPCRequestException(
                         "Failed to make http request.");
             } finally {
                 if (null != writer)
@@ -79,14 +78,14 @@ public class OnePlatformRPC {
                     response.append(line);
                 }
             } catch (IOException e) {
-                throw new HttpRPCResponseException(
+                throw new RPCResponseException(
                         "Failed to get http response.");
             } finally {
                 if (null != reader)
                     reader.close();
             }
         } catch (IOException e) {
-            throw new HttpRPCRequestException(
+            throw new RPCRequestException(
                     "Failed to open/close url connection.");
         } finally {
             if (conn != null)
@@ -157,7 +156,7 @@ public class OnePlatformRPC {
     }
 
     public List<Result> callAndRaiseAnyError(JSONObject requestBody)
-            throws HttpRPCRequestException, HttpRPCResponseException, OnePlatformException, JSONException {
+            throws RPCRequestException, RPCResponseException, OnePlatformException, JSONException {
         ArrayList<Result> results = null;
         Log.v(TAG, requestBody.toString());
         String responseBody = null;
@@ -173,14 +172,14 @@ public class OnePlatformRPC {
                 }
             }
         } else {
-            throw new HttpRPCResponseException("Response from OneP is empty");
+            throw new RPCResponseException("Response from OneP is empty");
         }
 
         return results;
     }
 
     public JSONObject listing(String cik, JSONArray types)
-            throws JSONException, HttpRPCRequestException, HttpRPCResponseException, OnePlatformException {
+            throws JSONException, RPCRequestException, RPCResponseException, OnePlatformException {
         JSONObject ret = new JSONObject();
         JSONObject options = new JSONObject();
 
@@ -195,7 +194,7 @@ public class OnePlatformRPC {
     }
 
     private ArrayList<JSONObject> info(String cik, List<String> rids, JSONObject infoOptions)
-            throws JSONException, HttpRPCRequestException, HttpRPCResponseException, OnePlatformException {
+            throws JSONException, RPCRequestException, RPCResponseException, OnePlatformException {
         JSONArray calls = new JSONArray();
 
         for (String rid: rids) {
