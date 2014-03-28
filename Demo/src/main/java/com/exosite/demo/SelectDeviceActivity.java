@@ -18,7 +18,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.exosite.api.onep.OneException;
-import com.exosite.api.onep.OnePlatformRPC;
+import com.exosite.api.onep.RPC;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -110,7 +110,7 @@ public class SelectDeviceActivity extends ListActivity {
             Bundle bundle = getIntent().getExtras();
             // maps portals RIDs to info listing for each portal
             JSONObject response = new JSONObject();
-            OnePlatformRPC rpc = new OnePlatformRPC();
+            RPC rpc = new RPC();
             exception = null;
             try {
                 SharedPreferences sharedPreferences = PreferenceManager

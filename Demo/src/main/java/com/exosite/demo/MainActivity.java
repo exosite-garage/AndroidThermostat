@@ -28,11 +28,14 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.exosite.api.ExoCallback;
+import com.exosite.api.ExoException;
+import com.exosite.api.onep.RPC;
 import com.exosite.api.onep.RPCRequestException;
 import com.exosite.api.onep.RPCResponseException;
 import com.exosite.api.onep.OnePlatformException;
-import com.exosite.api.onep.OnePlatformRPC;
 import com.exosite.api.onep.Result;
+import com.exosite.api.onep.TimeSeriesPoint;
 import com.exosite.api.portals.Portals;
 
 import org.json.JSONArray;
@@ -49,6 +52,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
@@ -72,6 +76,13 @@ public class MainActivity extends ActionBarActivity {
      * Polling interval for temperature data.
      */
     public static final int READ_INTERVAL_MILLISECONDS = 3000;
+
+    /**
+     * Device dataport aliases
+     */
+    private static final String ALIAS_TEMP = "temp";
+    private static final String ALIAS_SETPOINT = "setpoint";
+    private static final String ALIAS_SWITCH = "switch";
 
     private static final String TAG = "MainActivity";
     // TI device CIK
@@ -284,7 +295,22 @@ public class MainActivity extends ActionBarActivity {
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
                     mDevice.setWriteInProgress(true);
-                    new WriteTask().execute(ALIAS_SETPOINT, String.valueOf(mDevice.getSetpoint()));
+
+                    RPC r = new RPC();
+                    r.writeInBackground(mCIK, ALIAS_SETPOINT, String.valueOf(mDevice.getSetpoint()), new ExoCallback<Void>() {
+                        @Override
+                        public void done(Void result, ExoException e) {
+                            if (e == null) {
+                                mDevice.setWriteInProgress(false);
+                            } else {
+                                reportExoException(e);
+                            }
+                            updateWidgets();
+
+                            // read again in a while
+                            mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
+                        }
+                    });
                 }
             });
             mSetpointText = (TextView)rootView.findViewById(R.id.setpointText);
@@ -295,15 +321,76 @@ public class MainActivity extends ActionBarActivity {
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     String value = b ? "1" : "0";
                     mDevice.setWriteInProgress(true);
-                    new WriteTask().execute(ALIAS_SWITCH, value);
+                    RPC r = new RPC();
+                    r.writeInBackground(mCIK, ALIAS_SWITCH, value, new ExoCallback<Void>() {
+                        @Override
+                        public void done(Void result, ExoException e) {
+                            if (result != null) {
+                                // do nothing
+                            } else {
+                                reportExoException(e);
+                            }
+                            updateWidgets();
+
+                            // read again in a while
+                            mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
+                        }
+                    });
                 }
             });
+
+            final List<String> aliasesToRead = new ArrayList<String>();
+            aliasesToRead.add(ALIAS_TEMP);
+            aliasesToRead.add(ALIAS_SETPOINT);
 
             // configure to update widgets from platform periodically
             mReadRunnable = new Runnable() {
                 @Override
                 public void run() {
-                    new ReadTask().execute();
+
+                RPC rpc = new RPC();
+                rpc.readLatestInBackground(mCIK, aliasesToRead, new ExoCallback<HashMap<String, TimeSeriesPoint>>() {
+                    @Override
+                    public void done(HashMap<String, TimeSeriesPoint> result, ExoException e) {
+                        if (result != null) {
+
+                            TimeSeriesPoint temp = result.get(MainActivity.ALIAS_TEMP);
+                            if (temp == null) {
+                                mDevice.setTemperature(null);
+                                mDevice.setError("No temperature values.");
+                            } else {
+                                mDevice.setTemperature(Double.parseDouble(String.format("%s", temp.getValue())));
+                            }
+
+                            TimeSeriesPoint setPoint = result.get(MainActivity.ALIAS_SETPOINT);
+                            if (setPoint == null) {
+                                mDevice.setSetpoint(null);
+                                mDevice.setError("No setpoint value");
+                            } else {
+                                // only set the setpoint once from a read
+                                if (mDevice.getSetpoint() == null) {
+                                    mDevice.setSetpoint(Double.parseDouble(String.format("%s", setPoint.getValue())));
+                                }
+                            }
+
+                            TimeSeriesPoint switchState = result.get(MainActivity.ALIAS_SWITCH);
+                            if (switchState == null) {
+                                mDevice.setSwitchFromCloud(null);
+                                mDevice.setError("No switch value");
+                            } else {
+                                mDevice.setSwitchFromCloud((Integer) switchState.getValue());
+                            }
+                            mDevice.setError("");
+                        } else {
+                            reportExoException(e);
+                        }
+                        updateWidgets();
+
+                        // read again in a while
+                        mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
+                    }
+                });
+
                 }
             };
 
@@ -313,12 +400,20 @@ public class MainActivity extends ActionBarActivity {
             // load logo from internal storage
             loadLogo(rootView.getContext());
 
-            // start worker thread for reading from OneP
-            new ReadTask().execute();
+            // start reading
+            mReadHandler.post(mReadRunnable);
 
             return rootView;
         }
 
+        void reportExoException(ExoException e) {
+            displayError();
+            if (e != null) {
+                Log.e(TAG, "Exception " + e.getMessage());
+            } else {
+                Log.e(TAG, "No result and no exception");
+            }
+        }
         void displayError() {
             // show a brief message if it hasn't already been shown
             String err = mDevice.getError();
@@ -403,192 +498,6 @@ public class MainActivity extends ActionBarActivity {
                         new DownloadTask(ctx).execute(mLogoUrl);
                     }
                 }
-            }
-        }
-
-        private final String ALIAS_TEMP = "temp";
-        private final String ALIAS_SETPOINT = "setpoint";
-        private final String ALIAS_SWITCH = "switch";
-
-        class ReadTask extends AsyncTask<Void, Integer, ArrayList<Result>> {
-            private static final String TAG = "ReadTask";
-            private final String[] aliases = {ALIAS_TEMP, ALIAS_SETPOINT/*, ALIAS_SWITCH */};
-            private Exception exception;
-            protected ArrayList<Result> doInBackground(Void... params) {
-                exception = null;
-                // call to OneP
-                OnePlatformRPC rpc = new OnePlatformRPC();
-                String responseBody = null;
-                try {
-                    String requestBody = "{\"auth\":{\"cik\":\"" + mCIK
-                            + "\"},\"calls\":[";
-                    for (String alias: aliases) {
-                        requestBody += "{\"id\":\"" + alias + "\",\"procedure\":\"read\","
-                            + "\"arguments\":[{\"alias\":\"" + alias + "\"},"
-                            + "{\"limit\":1,\"sort\":\"desc\"}]}";
-                        if (alias != aliases[aliases.length - 1]) {
-                            requestBody += ',';
-                        }
-                    }
-                    requestBody += "]}";
-                    Log.v(TAG, requestBody);
-                    // do this just to check for JSON parse errors on client side
-                    // while debugging. it can be removed for production.
-                    JSONObject jo = new JSONObject(requestBody);
-                    responseBody = rpc.callRPC(requestBody);
-
-                    Log.v(TAG, responseBody);
-                } catch (JSONException e) {
-                    this.exception = e;
-                    Log.e(TAG, "Caught JSONException before sending request. Message:" + e.getMessage());
-                } catch (RPCRequestException e) {
-                    this.exception = e;
-                    Log.e(TAG, "Caught RPCRequestException " + e.getMessage());
-                } catch (RPCResponseException e) {
-                    this.exception = e;
-                    Log.e(TAG, "Caught RPCResponseException " + e.getMessage());
-                }
-
-                if (responseBody != null) {
-                    try {
-                        ArrayList<Result> results = rpc.parseResponses(responseBody);
-                        return results;
-                    } catch (OnePlatformException e) {
-                        this.exception = e;
-                        Log.e(TAG, "Caught OnePlatformException " + e.getMessage());
-                    } catch (JSONException e) {
-                        this.exception = e;
-                        Log.e(TAG, "Caught JSONException " + e.getMessage());
-                    }
-                }
-                return null;
-            }
-
-            // this is executed on UI thread when doInBackground
-            // returns a result
-            protected void onPostExecute(ArrayList<Result> results) {
-                boolean hasError = false;
-                if (results != null) {
-                    for(int i = 0; i < results.size(); i++) {
-                        Result result = results.get(i);
-                        String alias = aliases[i];
-                        if (result.getResult() instanceof JSONArray) {
-                            try {
-                                JSONArray points = ((JSONArray)result.getResult());
-                                if (points.length() > 0) {
-                                    JSONArray point = points.getJSONArray(0);
-                                    // this will break if results are out of order.
-                                    // need to fix OnePlatformRPC.java
-                                    if (alias == ALIAS_TEMP) {
-                                        mDevice.setTemperature(point.getDouble(1));
-                                    } else if (alias == ALIAS_SETPOINT) {
-                                        // only set the setpoint once from a read
-                                        if (mDevice.getSetpoint() == null) {
-                                            mDevice.setSetpoint(point.getDouble(1));
-                                        }
-                                    } else if (alias == ALIAS_SWITCH) {
-                                        mDevice.setSwitchFromCloud(point.getInt(1));
-                                    }
-                                } else {
-                                    hasError = true;
-                                    if (alias == ALIAS_TEMP) {
-                                        mDevice.setTemperature(null);
-                                        mDevice.setError("No temperature values.");
-                                    } else if (alias == ALIAS_SETPOINT) {
-                                        mDevice.setSetpoint(null);
-                                        mDevice.setError("No setpoint value");
-                                    } else if (alias == ALIAS_SWITCH) {
-                                        mDevice.setSwitchFromCloud(null);
-                                        mDevice.setError("No switch value");
-                                    }
-                                }
-                            } catch (JSONException e) {
-                                Log.e(TAG, "JSONException getting the result: " + e.getMessage());
-                            }
-                        } else {
-                            Log.e(TAG, result.getStatus() + ' ' + result.getResult().toString());
-                        }
-                    }
-                    updateWidgets();
-
-                } else {
-                    Log.e(TAG, "null result in ReadTask.onPostExecute()");
-                    if (this.exception instanceof OnePlatformException) {
-                        mDevice.setError("Received error from platform");
-                    } else {
-                        mDevice.setError("Unable to connect to platform");
-                    }
-                    hasError = true;
-                }
-                if (!hasError) {
-                    mDevice.setError("");
-                } else {
-                    displayError();
-                }
-                mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
-            }
-        }
-
-        class WriteTask extends AsyncTask<String, Integer, ArrayList<Result>> {
-            private static final String TAG = "WriteTask";
-            private Exception exception = null;
-            // pass two values per alias to write -- alias followed by value to write
-            // for example "foo", "1", "bar", "2"
-            protected ArrayList<Result> doInBackground(String... values) {
-                assert(values.length % 2 == 0);
-                OnePlatformRPC rpc = new OnePlatformRPC();
-                String responseBody = null;
-                try {
-                    String requestBody = "{\"auth\":{\"cik\":\"" + mCIK
-                            + "\"},\"calls\":[";
-                    for (int i = 0; i < values.length; i += 2) {
-                        String alias = values[i];
-                        requestBody += "{\"id\":\"" + alias + "\",\"procedure\":\"write\","
-                                + "\"arguments\":[{\"alias\":\"" + alias + "\"},"
-                                + "\"" + values[i + 1] + "\"]}";
-                        // are we pointing to the last alias?
-                        if (i != values.length - 2) {
-                            requestBody += ',';
-                        }
-                    }
-                    requestBody += "]}";
-                    Log.d(TAG, requestBody);
-                    // do this just to check for JSON parse errors on client side
-                    // while debugging. it can be removed for production.
-                    JSONObject jo = new JSONObject(requestBody);
-                    responseBody = rpc.callRPC(requestBody);
-
-                    Log.d(TAG, responseBody);
-                } catch (JSONException e) {
-                    this.exception = e;
-                    Log.e(TAG, "Caught JSONException before sending request. Message:" + e.getMessage());
-                } catch (RPCRequestException e) {
-                    this.exception = e;
-                    Log.e(TAG, "Caught RPCRequestException " + e.getMessage());
-                } catch (RPCResponseException e) {
-                    this.exception = e;
-                    Log.e(TAG, "Caught RPCResponseException " + e.getMessage());
-                }
-
-                if (responseBody != null) {
-                    try {
-                        ArrayList<Result> results = rpc.parseResponses(responseBody);
-                        return results;
-                    } catch (OnePlatformException e) {
-                        this.exception = e;
-                        Log.e(TAG, "Caught OnePlatformException " + e.getMessage());
-                    } catch (JSONException e) {
-                        this.exception = e;
-                        Log.e(TAG, "Caught JSONException " + e.getMessage());
-                    }
-                }
-                return null;
-            }
-
-            // this is executed on UI thread when doInBackground
-            // returns a result
-            protected void onPostExecute(ArrayList<Result> results) {
-                mDevice.setWriteInProgress(false);
             }
         }
 
