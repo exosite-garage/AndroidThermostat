@@ -51,6 +51,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -433,7 +434,7 @@ public class MainActivity extends ActionBarActivity {
             if (temp == null) {
                 mTemperature.setText("--°");
             } else {
-                mTemperature.setText(temp + "°");
+                mTemperature.setText(String.format(String.format("%.1f°", temp)));
             }
             if (mShowActionColor && temp != null && setpoint != null) {
                 if (temp < setpoint - TOLERANCE) {
