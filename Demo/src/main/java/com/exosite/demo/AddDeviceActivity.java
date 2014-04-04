@@ -114,7 +114,7 @@ public class AddDeviceActivity extends FormActivity {
                                                     newDevice.getString("cik").substring(0, 8)),
                                             Toast.LENGTH_LONG).show();
 
-                                    Intent intent = new Intent(AddDeviceActivity.this, SelectDeviceActivity.class);
+                                    Intent intent = new Intent(AddDeviceActivity.this, DeviceListActivity.class);
                                     startActivity(intent);
                                     finish();
                                 } catch (JSONException je) {

@@ -1,17 +1,13 @@
 package com.exosite.demo;
 
+import android.support.v4.app.ListFragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,20 +17,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.CompoundButton;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.exosite.api.ExoCallback;
 import com.exosite.api.ExoException;
 import com.exosite.api.onep.RPC;
-import com.exosite.api.onep.RPCRequestException;
-import com.exosite.api.onep.RPCResponseException;
-import com.exosite.api.onep.OnePlatformException;
-import com.exosite.api.onep.Result;
 import com.exosite.api.onep.TimeSeriesPoint;
 import com.exosite.api.portals.Portals;
 
@@ -42,18 +31,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
@@ -73,56 +53,25 @@ public class MainActivity extends ActionBarActivity {
      * Domain for interacting with Portals API
      */
     public static final String PORTALS_DOMAIN = "ti.exosite.com";
-    /**
-     * Polling interval for temperature data.
-     */
-    public static final int READ_INTERVAL_MILLISECONDS = 3000;
-
-    /**
-     * Device dataport aliases
-     */
-    private static final String ALIAS_TEMP = "temp";
-    private static final String ALIAS_SETPOINT = "setpoint";
-    private static final String ALIAS_SWITCH = "switch";
 
     private static final String TAG = "MainActivity";
     // TI device CIK
     static String mCIK;
     static String mName;
-    // whether to show colors for action
-    static boolean mShowActionColor;
-    // url where alternative logo may be found
-    static String mLogoUrl = "";
     static String mEmail = "";
     // For a production app, this should be encrypted/obfuscated
     static String mPassword = "";
 
-    // Device model
-    static Device mDevice = new Device();
     SharedPreferences.OnSharedPreferenceChangeListener listener;
-    public static final String LOGO_FILENAME = "logo.png";
     DrawerLayout mDrawerLayout;
     ListView mDrawerList;
 
-    private void deleteLogoFile() {
-        File dir = getFilesDir();
-        File file = new File(dir, LOGO_FILENAME);
-        boolean deleted = file.delete();
-    }
-
-    private void updateFromSettings(boolean reDownloadLogo) {
+    private void updateFromSettings() {
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
         mCIK = sharedPreferences.getString(SettingsActivity.KEY_PREF_DEVICE_CIK, "DEFAULT CIK");
         mName = sharedPreferences.getString(SettingsActivity.KEY_PREF_DEVICE_NAME, "");
-        mShowActionColor = sharedPreferences.getBoolean(SettingsActivity.KEY_PREF_ACTION_COLOR, true);
-        String url = sharedPreferences.getString(SettingsActivity.KEY_PREF_LOGO_URL, "");
-        // if the logo URL is updated, remove the saved bitmap.
-        // this will cause a redownload
-        if ((reDownloadLogo && url != mLogoUrl) || url.length() == 0) {
-            deleteLogoFile();
-        }
-        mLogoUrl = url;
+
         PlaceholderFragment fragment = (PlaceholderFragment)getSupportFragmentManager()
                 .findFragmentByTag(PlaceholderFragment.FRAGMENT_TAG);
         if (fragment != null) {
@@ -175,13 +124,11 @@ public class MainActivity extends ActionBarActivity {
                 switch(i) {
                     case 0:
                         // select device
-                        // TODO: cancel read task
-                        intent = new Intent(getApplicationContext(), SelectDeviceActivity.class);
+                        intent = new Intent(getApplicationContext(), DeviceListActivity.class);
                         startActivity(intent);
                         break;
                     case 1:
                         // log out
-                        // TODO: cancel read task
                         SharedPreferences sharedPreferences = PreferenceManager
                                 .getDefaultSharedPreferences(getApplicationContext());
                         sharedPreferences.edit().remove("password").commit();
@@ -201,14 +148,14 @@ public class MainActivity extends ActionBarActivity {
         }
 
         // set up preferences/settings
-        updateFromSettings(false);
+        updateFromSettings();
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
         listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
                 Log.d(TAG, "called onSharedPreferenceChanged()");
-                updateFromSettings(true);
+                updateFromSettings();
             }
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener);
@@ -219,16 +166,8 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
-        if (mDevice.getSetpoint() != null) {
-            savedInstanceState.putDouble("setpoint", mDevice.getSetpoint());
-        }
-        if (mDevice.getTemperature() != null) {
-            savedInstanceState.putDouble("temp", mDevice.getTemperature());
-        }
     }
     private void restoreInstanceState(Bundle savedInstanceState) {
-        mDevice.setSetpoint(savedInstanceState.getDouble("setpoint"));
-        mDevice.setTemperature(savedInstanceState.getDouble("temp"));
     }
 
     @Override
@@ -257,19 +196,10 @@ public class MainActivity extends ActionBarActivity {
     /**
      * A placeholder fragment containing a simple view.
      */
-    public static class PlaceholderFragment extends Fragment {
+    public static class PlaceholderFragment extends ListFragment {
         private static final String TAG = "PlaceholderFragment";
         public static final String FRAGMENT_TAG = "PLACEHOLDER_FRAGMENT";
-        ImageView mLogo;
-        TextView mTemperature;
-        //Spinner mLed;
-        SeekBar mSetpoint;
-        CompoundButton mSwitch;
-        TextView mSetpointText;
-        // heat and cool when temp is + or - TOLERANCE from setpoint
-        double TOLERANCE = 1.0;
-        Handler mReadHandler = new Handler();
-        Runnable mReadRunnable;
+
         String lastToast;
 
         @Override
@@ -277,215 +207,92 @@ public class MainActivity extends ActionBarActivity {
                 Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
             setRetainInstance(true);
-            mLogo = (ImageView)rootView.findViewById(R.id.logo);
-            mTemperature = (TextView)rootView.findViewById(R.id.temperature);
-            mSetpoint = (SeekBar)rootView.findViewById(R.id.setpoint);
-            mSetpoint.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int i, boolean fromUser) {
-                    if (mDevice.getSetpoint() != null) {
-                        mDevice.setSetpointFromPercent(i);
-                    }
-                    updateWidgets();
-                }
 
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-                    mDevice.setWriteInProgress(true);
-
-                    RPC r = new RPC();
-                    r.writeInBackground(mCIK, ALIAS_SETPOINT, String.valueOf(mDevice.getSetpoint()), new ExoCallback<Void>() {
-                        @Override
-                        public void done(Void result, ExoException e) {
-                            if (e == null) {
-                                mDevice.setWriteInProgress(false);
-                            } else {
-                                reportExoException(e);
-                            }
-                            updateWidgets();
-
-                            // read again in a while
-                            mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
-                        }
-                    });
-                }
-            });
-            mSetpointText = (TextView)rootView.findViewById(R.id.setpointText);
-
-            mSwitch = (CompoundButton)rootView.findViewById(R.id.switch_control);
-            mSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    String value = b ? "1" : "0";
-                    mDevice.setWriteInProgress(true);
-                    RPC r = new RPC();
-                    r.writeInBackground(mCIK, ALIAS_SWITCH, value, new ExoCallback<Void>() {
-                        @Override
-                        public void done(Void result, ExoException e) {
-                            if (result != null) {
-                                // do nothing
-                            } else {
-                                reportExoException(e);
-                            }
-                            updateWidgets();
-
-                            // read again in a while
-                            mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
-                        }
-                    });
-                }
-            });
-
-            final List<String> aliasesToRead = new ArrayList<String>();
-            aliasesToRead.add(ALIAS_TEMP);
-            aliasesToRead.add(ALIAS_SETPOINT);
-
-            // configure to update widgets from platform periodically
-            mReadRunnable = new Runnable() {
-                @Override
-                public void run() {
-
-                RPC rpc = new RPC();
-                rpc.readLatestInBackground(mCIK, aliasesToRead, new ExoCallback<HashMap<String, TimeSeriesPoint>>() {
-                    @Override
-                    public void done(HashMap<String, TimeSeriesPoint> result, ExoException e) {
-                        if (result != null) {
-
-                            TimeSeriesPoint temp = result.get(MainActivity.ALIAS_TEMP);
-                            if (temp == null) {
-                                mDevice.setTemperature(null);
-                                mDevice.setError("No temperature values.");
-                            } else {
-                                mDevice.setTemperature(Double.parseDouble(String.format("%s", temp.getValue())));
-                            }
-
-                            TimeSeriesPoint setPoint = result.get(MainActivity.ALIAS_SETPOINT);
-                            if (setPoint == null) {
-                                mDevice.setSetpoint(null);
-                                mDevice.setError("No setpoint value");
-                            } else {
-                                // only set the setpoint once from a read
-                                if (mDevice.getSetpoint() == null) {
-                                    mDevice.setSetpoint(Double.parseDouble(String.format("%s", setPoint.getValue())));
-                                }
-                            }
-
-                            TimeSeriesPoint switchState = result.get(MainActivity.ALIAS_SWITCH);
-                            if (switchState == null) {
-                                mDevice.setSwitchFromCloud(null);
-                                mDevice.setError("No switch value");
-                            } else {
-                                mDevice.setSwitchFromCloud((Integer) switchState.getValue());
-                            }
-                            mDevice.setError("");
-                        } else {
-                            reportExoException(e);
-                        }
-                        updateWidgets();
-
-                        // read again in a while
-                        mReadHandler.postDelayed(mReadRunnable, READ_INTERVAL_MILLISECONDS);
-                    }
-                });
-
-                }
-            };
-
-            // sync widgets with model
-            updateWidgets();
-
-            // load logo from internal storage
-            loadLogo(rootView.getContext());
-
-            // start reading
-            mReadHandler.post(mReadRunnable);
+            // setup list
+            populateList();
 
             return rootView;
         }
 
+        void populateList() {
+
+            try {
+                final RPC rpc = new RPC();
+                JSONArray types = new JSONArray();
+                types.put("dataport");
+                types.put("datarule");
+                JSONObject infoOptions = new JSONObject();
+                infoOptions.put("description", true);
+                final PlaceholderFragment fragment = this;
+                rpc.infoListingInBackground(mCIK, types, infoOptions, new ExoCallback<JSONObject>() {
+                    @Override
+                    public void done(JSONObject result, ExoException e) {
+                        if (result != null) {
+                            final ArrayList<String> resourceArray = new ArrayList<String>();
+                            final ArrayList<String> rids = new ArrayList<String>();
+
+                            try {
+                                Iterator<String> typeIter = result.keys();
+                                while (typeIter.hasNext()) {
+                                    String type = typeIter.next();
+                                    JSONObject resources = result.getJSONObject(type);
+                                    Iterator<String> resIter = resources.keys();
+                                    while (resIter.hasNext()) {
+                                        String rid = resIter.next();
+                                        rids.add(rid);
+                                        JSONObject info = resources.getJSONObject(rid);
+                                        resourceArray.add(info.getJSONObject("description").getString("name"));
+                                    }
+                                }
+                            } catch (JSONException je) {
+                                Log.e(TAG, "Exception while getting resource info: " + je.toString());
+                            }
+                            rpc.readLatestInBackground(mCIK, rids, new ExoCallback<HashMap<String, TimeSeriesPoint>>() {
+                                @Override
+                                public void done(HashMap<String, TimeSeriesPoint> result, ExoException e) {
+                                    if (result != null) {
+                                        final ArrayList<String> valuesArray = new ArrayList<String>();
+                                        for (String rid: rids) {
+                                            TimeSeriesPoint pt = result.get(rid);
+                                            valuesArray.add(pt == null ? "No value" : pt.getValue().toString());
+                                        }
+                                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                                                fragment.getActivity(),
+                                                android.R.layout.two_line_list_item,
+                                                android.R.id.text1,
+                                                valuesArray) {
+                                            @Override
+                                            public View getView(int position, View convertView, ViewGroup parent) {
+                                                View view = super.getView(position, convertView, parent);
+                                                TextView text1 = (TextView) view.findViewById(android.R.id.text1);
+                                                TextView text2 = (TextView) view.findViewById(android.R.id.text2);
+
+                                                text1.setText(resourceArray.get(position));
+                                                text2.setText(valuesArray.get(position));
+                                                return view;
+                                            }
+                                        };
+                                        setListAdapter(adapter);
+                                    }
+                                }
+                            });
+
+                        } else {
+                            reportExoException(e);
+                        }
+                    }
+                });
+            } catch (JSONException e) {
+                Toast.makeText(this.getActivity(), "Failed to get device resources",
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+
         void reportExoException(ExoException e) {
-            displayError();
             if (e != null) {
                 Log.e(TAG, "Exception " + e.getMessage());
             } else {
                 Log.e(TAG, "No result and no exception");
-            }
-        }
-        void displayError() {
-            // show a brief message if it hasn't already been shown
-            String err = mDevice.getError();
-            if (err != lastToast) {
-                if (err.length() > 0) {
-                    Context ctx = getView().getContext();
-                    Toast.makeText(ctx, err, Toast.LENGTH_LONG).show();
-                }
-                lastToast = err;
-            }
-        }
-
-        void updateWidgets() {
-            if (getActivity() == null || mTemperature == null || mSetpoint == null) return;
-            Double temp = mDevice.getTemperature();
-            Double setpoint = mDevice.getSetpoint();
-            if (temp == null) {
-                mTemperature.setText("--°");
-            } else {
-                mTemperature.setText(String.format(String.format("%.1f°", temp)));
-            }
-            if (mShowActionColor && temp != null && setpoint != null) {
-                if (temp < setpoint - TOLERANCE) {
-                    // too cold
-                    mTemperature.setBackgroundColor(getResources().getColor(R.color.warming));
-                } else if (setpoint + TOLERANCE < temp) {
-                    // too hot
-                    mTemperature.setBackgroundColor(getResources().getColor(R.color.cooling));
-                } else {
-                    // just right
-                    mTemperature.setBackgroundColor(getResources().getColor(R.color.off));
-                }
-            } else {
-                mTemperature.setBackgroundColor(getResources().getColor(R.color.appBlue));
-            }
-            if (setpoint == null) {
-                // if setpoint hasn't been set, leave setpoint slider as it is
-                // mSetpoint.setEnabled(false);
-                mSetpointText.setText("");
-            } else {
-                mSetpoint.setEnabled(true);
-                mSetpoint.setProgress(mDevice.getSetpointAsPercent().intValue());
-                mSetpointText.setText(String.format("%.0f", setpoint) + "°");
-            }
-
-            Integer switchState = mDevice.getSwitch();
-            if (switchState == null) {
-                mSwitch.setChecked(false);
-            } else {
-                mSwitch.setChecked(switchState != 0);
-            }
-
-        }
-
-        private boolean loadLogo(Context ctx) {
-            Bitmap bitmap = null;
-            try {
-                Log.d(TAG, "File location: " + ctx.getFileStreamPath(LOGO_FILENAME));
-                final FileInputStream fis = ctx.openFileInput(LOGO_FILENAME);
-                bitmap = BitmapFactory.decodeStream(fis);
-                fis.close();
-            } catch (FileNotFoundException e) {
-                Toast.makeText(ctx, "Logo file not found", Toast.LENGTH_SHORT);
-            } catch (IOException e) {
-                Toast.makeText(ctx, "IO Exception loading logo", Toast.LENGTH_SHORT);
-            }
-            if (bitmap != null) {
-                mLogo.setImageBitmap(bitmap);
-                return true;
-            } else {
-                return false;
             }
         }
 
@@ -493,66 +300,9 @@ public class MainActivity extends ActionBarActivity {
             View v = getView();
             if (v != null) {
                 Context ctx = v.getContext();
-
-                if (!loadLogo(ctx)) {
-                    if (mLogoUrl != null && mLogoUrl.trim().length() != 0) {
-                        new DownloadTask(ctx).execute(mLogoUrl);
-                    }
-                }
             }
         }
 
-        class DownloadTask extends AsyncTask<String, Void, Bitmap> {
-            String errorMessage;
-            Context ctx;
-            public DownloadTask(Context ctx) {
-                this.ctx = ctx;
-            }
-            // pass one value per entry in aliases above
-            protected Bitmap doInBackground(String... urls) {
-                String logoUrl = urls[0];
-                Log.d(TAG, "logoUrl " + logoUrl);
-                Bitmap bitmap = null;
-                errorMessage = "";
-                try {
-                    URL url = new URL(logoUrl.trim());
-                    URLConnection urlConnection = url.openConnection();
-                    InputStream inputStream = urlConnection.getInputStream();
-                    bitmap = BitmapFactory.decodeStream(inputStream);
-                } catch (MalformedURLException e) {
-                    errorMessage = "Invalid image URL";
-                } catch (IOException e) {
-                    errorMessage = "IO Exception";
-                }
-                if (errorMessage.length() > 0) {
-                    if (mLogoUrl.trim().length() > 0) {
-                        Log.e(TAG, errorMessage);
-                    }
-                }
-                return bitmap;
-            }
-            // this is executed on UI thread when doInBackground
-            // returns a result
-            protected void onPostExecute(Bitmap bitmap) {
-                if (bitmap == null || errorMessage != "") {
-                    Toast.makeText(ctx, "Error downloading logo bitmap:" + errorMessage, Toast.LENGTH_LONG).show();
-                } else {
-                    try {
-                        // save file locally
-                        final FileOutputStream fos = ctx.openFileOutput(LOGO_FILENAME, Context.MODE_PRIVATE);
-                        Log.d(TAG, "File location: " + ctx.getFileStreamPath(LOGO_FILENAME));
-                        if (bitmap.compress(Bitmap.CompressFormat.PNG, 90, fos)) {
-                            Toast.makeText(ctx, "Logo saved successfully", Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(ctx, "Failed to save logo", Toast.LENGTH_SHORT).show();
-                        }
-                        loadLogo(ctx);
-                    } catch (FileNotFoundException e) {
-                        Toast.makeText(ctx, "File not found when saving logo file", Toast.LENGTH_LONG).show();
-                    }
-                }
-            }
-        }
     }
 
 }

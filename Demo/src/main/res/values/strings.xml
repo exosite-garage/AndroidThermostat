@@ -7,7 +7,6 @@
     <string name="device_model">Model</string>
     <string name="device_serial_number">Serial Number</string>
     <string name="add_device_progress_adding_device">Adding device...</string>
-
     <string name="action_add_device">Add Device</string>
     <string name="app_name">Exosite</string>
     <string name="hello_world">Hello world!</string>
@@ -16,10 +15,16 @@
     <string name="led_label">LED6</string>
     <string name="cik">Device CIK</string>
     <string name="select_device">Select Device</string>
-
     <string name="title_activity_settings">Settings</string>
     <string name="version">Version</string>
     <string name="title_activity_select_device">SelectDeviceActivity</string>
     <string name="title_activity_add_device">AddDevice</string>
+    <string name="title_activity_device">DeviceActivity</string>
+    <string name="title_section1">Section 1</string>
+    <string name="title_section2">Section 2</string>
+    <string name="title_section3">Section 3</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="action_example">Example action</string>
 
 </resources>

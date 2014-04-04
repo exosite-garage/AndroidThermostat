@@ -227,7 +227,7 @@ public class LoginActivity extends FormActivity {
                         sharedPreferences.edit().putString("password", mPassword).commit();
                         sharedPreferences.edit().putString("portal_list", result.toString()).commit();
 
-                        Intent intent = new Intent(LoginActivity.this, SelectDeviceActivity.class);
+                        Intent intent = new Intent(LoginActivity.this, DeviceListActivity.class);
                         startActivity(intent);
                         finish();
                     } else {

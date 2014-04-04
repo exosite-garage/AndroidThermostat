@@ -26,12 +26,11 @@ import org.json.JSONObject;
 
 import java.util.Iterator;
 
-public class SelectDeviceActivity extends ListActivity {
+public class DeviceListActivity extends ListActivity {
 
     JSONArray mPortalList;
     SimpleCursorAdapter mAdapter;
     DatabaseHelper mDB;
-    Cursor mCursor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,7 +113,7 @@ public class SelectDeviceActivity extends ListActivity {
             exception = null;
             try {
                 SharedPreferences sharedPreferences = PreferenceManager
-                        .getDefaultSharedPreferences(SelectDeviceActivity.this);
+                        .getDefaultSharedPreferences(DeviceListActivity.this);
 
                 mPortalList = new JSONArray(sharedPreferences.getString("portal_list", "[]"));
                 JSONObject infoOptions = new JSONObject();
