@@ -57,6 +57,53 @@ public class Portals {
     }
 
     /**
+     * List a user's domains
+     *
+     * @param email    - email address of user to authenticate
+     * @param password - portals password of user
+     * @return JSONArray of JSONObjects containing information about user's
+     *         domains.
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public JSONArray listDomains(String email, String password)
+            throws PortalsRequestException, PortalsResponseException {
+        JSONArray response = null;
+        HTTPResult r = call(mDomain, "domain/", "", email, password);
+        String responseBody = r.responseBody;
+        try {
+            response = new JSONArray(responseBody);
+        } catch (JSONException e) {
+            throw new PortalsRequestException("Invalid JSON in response. Response was:" + responseBody);
+        }
+        return response;
+    }
+
+    /**
+     * List a user's domains
+     *
+     * @param email    - email address of user to authenticate
+     * @param password - portals password of user
+     * @param callback - handler for successful completion or exception condition
+     * @return JSONArray of  JSONObjects containing information about user's
+     *         domains
+     * @throws PortalsRequestException
+     * @throws PortalsResponseException
+     */
+    static public void listDomainsInBackground(
+            final String email,
+            final String password,
+            final ExoCallback<JSONArray> callback) {
+
+        new ExoCall<JSONArray>(callback) {
+            @Override
+            public JSONArray call() throws ExoException {
+                return listDomains(email, password);
+            }
+        }.callInBackground();
+    }
+
+    /**
      * List a user's portals
      *
      * @param email    - email address of user to authenticate
@@ -101,7 +148,6 @@ public class Portals {
                 return listPortals(email, password);
             }
         }.callInBackground();
-
     }
 
     /**
