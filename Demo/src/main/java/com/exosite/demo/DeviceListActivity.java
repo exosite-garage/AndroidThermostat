@@ -72,6 +72,7 @@ public class DeviceListActivity extends ListActivity {
 
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
+        finish();
     }
 
     @Override
