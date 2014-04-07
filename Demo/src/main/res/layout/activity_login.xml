@@ -1,6 +1,6 @@
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.exosite.demo.LoginActivity">
+    tools:context="com.exosite.portals.LoginActivity">
 
     <!-- Login progress -->
     <LinearLayout android:id="@+id/status"

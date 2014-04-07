@@ -1,4 +1,4 @@
-package com.exosite.demo;
+package com.exosite.portals;
 
 import android.app.ListActivity;
 import android.content.Context;

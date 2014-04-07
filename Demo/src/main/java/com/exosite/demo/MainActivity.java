@@ -1,4 +1,4 @@
-package com.exosite.demo;
+package com.exosite.portals;
 
 import android.support.v4.app.ListFragment;
 import android.content.Context;

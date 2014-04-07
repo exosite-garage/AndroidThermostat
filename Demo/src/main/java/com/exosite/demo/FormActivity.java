@@ -1,4 +1,4 @@
-package com.exosite.demo;
+package com.exosite.portals;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;

@@ -1,29 +1,10 @@
-## Exosite Android Demo
+## Portals for Android
 
-This Android app demonstrates connectivity to the One Platform via the [RPC API](https://github.com/exosite/docs/tree/master/rpc). It displays a thermostat-like interface, with an ambient temperature indicator and slider for adjusting the temperature set point. Temperature values are read from the One Platform every couple of seconds, and set point is sent to the platform when the slider is adjusted.
+This Android app demonstrates connectivity to the One Platform via the [RPC API](https://github.com/exosite/docs/tree/master/rpc) and Portals API.
 
 ### Usage
 
-To use this app you need a device on Exosite's One Platform. There are two ways to create a device that will work with this demo.
-
-A.) Create one by hand. At minimum the demo device needs to be configured as follows:
-
-```
-dataports:
-    - alias: temp
-      format: float
-    - alias: setpoint
-      format: float
-```
-
-Once you have a CIK for a device with the dataports specified above, enter that CIK in the App under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports.
-
-B.) Add an existing device from a user's portal, by signing in and selecting it in the "Select Device" list. The device must fit the description in (A).
-C.) Log in and create one automatically. Enter portals account email and password, press "Sign in" and on the "Select Device" screen, press the button in the upper right and select "Add Device". This creates a device based on a model that fits the description in (A).
-
-To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects.
-
-To revert to the Exosite logo, change the URL in settings to an empty string and then shut down and restart the app
+TODO
 
 ### Build 
 
@@ -40,7 +21,7 @@ $ git clone git@github.com:exosite-garage/AndroidDemo.git DemoProject
 
 3.) Set up PC for debugging (this varies by platform, see http://developer.android.com/tools/device.html)
 
-4.) Open the project with Android Studio (the `DemoProject` folder)
+4.) Open the project with Android Studio
 
 5.) In Android Studio, select Build->Make Project
 

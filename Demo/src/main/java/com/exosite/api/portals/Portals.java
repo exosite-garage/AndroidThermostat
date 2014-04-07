@@ -395,7 +395,7 @@ public class Portals {
             }
             conn.setUseCaches(false);
             conn.setConnectTimeout(Portals.mTimeoutSeconds * 1000);
-            conn.setRequestProperty("User-Agent", "Android demo app");
+            conn.setRequestProperty("User-Agent", "Portals for Android");
             if (body.length() > 0) {
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);

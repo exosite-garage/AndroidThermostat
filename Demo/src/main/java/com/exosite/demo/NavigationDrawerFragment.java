@@ -1,4 +1,4 @@
-package com.exosite.demo;
+package com.exosite.portals;
 
 import android.support.v7.app.ActionBarActivity;;
 import android.app.Activity;
