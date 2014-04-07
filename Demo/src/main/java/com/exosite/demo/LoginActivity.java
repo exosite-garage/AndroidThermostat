@@ -20,12 +20,14 @@ import com.exosite.api.ExoException;
 import com.exosite.api.portals.PortalsResponseException;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 
 /**
  * Activity which displays a login screen to the user, offering registration as
  * well.
  */
 public class LoginActivity extends FormActivity {
+    private static final String TAG = "LoginActivity";
 
     enum LoginTask {
         SignIn,
@@ -216,7 +218,8 @@ public class LoginActivity extends FormActivity {
             showProgress(true);
             Portals.setDomain(MainActivity.PORTALS_DOMAIN);
             mInProgress = true;
-            Portals.listPortalsInBackground(mEmail, mPassword, new ExoCallback<JSONArray>() {
+
+            Portals.listDomainsInBackground(mEmail, mPassword, new ExoCallback<JSONArray>() {
                 @Override
                 public void done(JSONArray result, ExoException e) {
                     mInProgress = false;
@@ -225,16 +228,28 @@ public class LoginActivity extends FormActivity {
                                 .getDefaultSharedPreferences(LoginActivity.this);
                         sharedPreferences.edit().putString("email", mEmail).commit();
                         sharedPreferences.edit().putString("password", mPassword).commit();
-                        sharedPreferences.edit().putString("portal_list", result.toString()).commit();
+                        sharedPreferences.edit().putString("domain_list", result.toString()).commit();
 
-                        Intent intent = new Intent(LoginActivity.this, DeviceListActivity.class);
-                        startActivity(intent);
-                        finish();
+                        // select a domain
+                        try {
+                            // for now just default to the first domain
+                            String defaultDomain = result.getJSONObject(0).getString("domain");
+
+                            Helper.selectDomainAndDoIntent(
+                                    defaultDomain,
+                                    new Intent(LoginActivity.this, DeviceListActivity.class),
+                                    LoginActivity.this);
+
+                        } catch (JSONException je) {
+                            reportExoException(e);
+                        }
+
                     } else {
                         reportExoException(e);
                     }
                 }
             });
+
         }
     }
 }

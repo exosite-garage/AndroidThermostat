@@ -52,10 +52,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="SelectDeviceActivity" />
         </activity>
-        <activity
-            android:name="com.exosite.demo.DeviceActivity"
-            android:label="@string/title_activity_device" >
-        </activity>
     </application>
 
 </manifest>

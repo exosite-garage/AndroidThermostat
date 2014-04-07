@@ -41,6 +41,7 @@ public class DeviceListActivity extends ListActivity {
         mDB.RecreateTable();
         setupAdapter();
 
+        Helper.showProgress(true, this);
         new LoadDevicesTask(getListView().getContext()).execute();
     }
 
@@ -160,6 +161,8 @@ public class DeviceListActivity extends ListActivity {
         // returns a result
         protected void onPostExecute(JSONObject infoListing) {
             if (exception == null) {
+                Helper.showProgress(false, DeviceListActivity.this);
+
                 Cursor cursor = mDB.GetAllData();
                 mAdapter.changeCursor(cursor);
                 mAdapter.notifyDataSetChanged();
@@ -175,6 +178,4 @@ public class DeviceListActivity extends ListActivity {
             }
         }
     }
-
-
 }

@@ -62,6 +62,8 @@ public class MainActivity extends ActionBarActivity {
     // For a production app, this should be encrypted/obfuscated
     static String mPassword = "";
 
+    static JSONArray mDomains;
+
     SharedPreferences.OnSharedPreferenceChangeListener listener;
     DrawerLayout mDrawerLayout;
     ListView mDrawerList;
@@ -93,6 +95,14 @@ public class MainActivity extends ActionBarActivity {
         return true;
     }
 
+    static void reportExoException(Exception e) {
+        if (e != null) {
+            Log.e(TAG, "Exception " + e.getMessage());
+        } else {
+            Log.e(TAG, "No result and no exception");
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -111,6 +121,20 @@ public class MainActivity extends ActionBarActivity {
         menuOptions.add("Select Device");
         menuOptions.add("Log out");
 
+        try {
+            // get user's domains
+            SharedPreferences sharedPreferences = PreferenceManager
+                    .getDefaultSharedPreferences(MainActivity.this);
+            mDomains = new JSONArray(sharedPreferences.getString("domain_list", "[]"));
+            for (int i = 0; i < mDomains.length(); i++) {
+                JSONObject domain = (JSONObject)mDomains.get(i);
+
+                menuOptions.add(domain.getString("domain"));
+            }
+        } catch (JSONException je) {
+            reportExoException(je);
+        }
+
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mDrawerList = (ListView) findViewById(R.id.left_drawer);
 
@@ -121,6 +145,9 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent intent;
+                SharedPreferences sharedPreferences = PreferenceManager
+                        .getDefaultSharedPreferences(MainActivity.this);
+
                 switch(i) {
                     case 0:
                         // select device
@@ -129,12 +156,20 @@ public class MainActivity extends ActionBarActivity {
                         break;
                     case 1:
                         // log out
-                        SharedPreferences sharedPreferences = PreferenceManager
-                                .getDefaultSharedPreferences(getApplicationContext());
                         sharedPreferences.edit().remove("password").commit();
                         intent = new Intent(getApplicationContext(), LoginActivity.class);
                         startActivity(intent);
                         break;
+                    default:
+                        try {
+                            // select domain
+                            Helper.selectDomainAndDoIntent(
+                                    mDomains.getJSONObject(i - 2).getString("domain"),
+                                    new Intent(MainActivity.this, DeviceListActivity.class),
+                                    MainActivity.this);
+                        } catch (JSONException je) {
+                            reportExoException(je);
+                        }
                 }
             }
         });
@@ -224,6 +259,7 @@ public class MainActivity extends ActionBarActivity {
                 JSONObject infoOptions = new JSONObject();
                 infoOptions.put("description", true);
                 final PlaceholderFragment fragment = this;
+                //Helper.showProgress(true, getActivity());
                 rpc.infoListingInBackground(mCIK, types, infoOptions, new ExoCallback<JSONObject>() {
                     @Override
                     public void done(JSONObject result, ExoException e) {
@@ -251,6 +287,8 @@ public class MainActivity extends ActionBarActivity {
                                 @Override
                                 public void done(HashMap<String, TimeSeriesPoint> result, ExoException e) {
                                     if (result != null) {
+                                        //Helper.showProgress(false, getActivity());
+
                                         final ArrayList<String> valuesArray = new ArrayList<String>();
                                         for (String rid: rids) {
                                             TimeSeriesPoint pt = result.get(rid);
@@ -285,14 +323,6 @@ public class MainActivity extends ActionBarActivity {
             } catch (JSONException e) {
                 Toast.makeText(this.getActivity(), "Failed to get device resources",
                         Toast.LENGTH_LONG).show();
-            }
-        }
-
-        void reportExoException(ExoException e) {
-            if (e != null) {
-                Log.e(TAG, "Exception " + e.getMessage());
-            } else {
-                Log.e(TAG, "No result and no exception");
             }
         }
 

@@ -1,6 +1,6 @@
 ## Exosite Android Demo
 
-This Android app demonstrates connectivity to the One Platform via the [RPC API](https://github.com/exosite/api/tree/master/rpc). It displays a thermostat-like interface, with an ambient temperature indicator and slider for adjusting the temperature set point. Temperature values are read from the One Platform every couple of seconds, and set point is sent to the platform when the slider is adjusted.
+This Android app demonstrates connectivity to the One Platform via the [RPC API](https://github.com/exosite/docs/tree/master/rpc). It displays a thermostat-like interface, with an ambient temperature indicator and slider for adjusting the temperature set point. Temperature values are read from the One Platform every couple of seconds, and set point is sent to the platform when the slider is adjusted.
 
 ### Usage
 
