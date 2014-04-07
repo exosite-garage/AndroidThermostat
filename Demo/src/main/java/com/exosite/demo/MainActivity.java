@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -62,11 +61,9 @@ public class MainActivity extends ActionBarActivity {
     // For a production app, this should be encrypted/obfuscated
     static String mPassword = "";
 
-    static JSONArray mDomains;
+    DrawerHelper mDrawerHelper;
 
     SharedPreferences.OnSharedPreferenceChangeListener listener;
-    DrawerLayout mDrawerLayout;
-    ListView mDrawerList;
 
     private void updateFromSettings() {
         SharedPreferences sharedPreferences = PreferenceManager
@@ -116,63 +113,8 @@ public class MainActivity extends ActionBarActivity {
 
         setContentView(R.layout.activity_main);
 
-        //mPlanetTitles = getResources().getStringArray(R.array.planets_array);
-        List<String> menuOptions = new ArrayList<String>();
-        menuOptions.add("Select Device");
-        menuOptions.add("Log out");
-
-        try {
-            // get user's domains
-            SharedPreferences sharedPreferences = PreferenceManager
-                    .getDefaultSharedPreferences(MainActivity.this);
-            mDomains = new JSONArray(sharedPreferences.getString("domain_list", "[]"));
-            for (int i = 0; i < mDomains.length(); i++) {
-                JSONObject domain = (JSONObject)mDomains.get(i);
-
-                menuOptions.add(domain.getString("domain"));
-            }
-        } catch (JSONException je) {
-            reportExoException(je);
-        }
-
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mDrawerList = (ListView) findViewById(R.id.left_drawer);
-
-        // Set the adapter for the list view
-        mDrawerList.setAdapter(new ArrayAdapter<String>(this,
-                R.layout.drawer_list_item, menuOptions));
-        mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Intent intent;
-                SharedPreferences sharedPreferences = PreferenceManager
-                        .getDefaultSharedPreferences(MainActivity.this);
-
-                switch(i) {
-                    case 0:
-                        // select device
-                        intent = new Intent(getApplicationContext(), DeviceListActivity.class);
-                        startActivity(intent);
-                        break;
-                    case 1:
-                        // log out
-                        sharedPreferences.edit().remove("password").commit();
-                        intent = new Intent(getApplicationContext(), LoginActivity.class);
-                        startActivity(intent);
-                        break;
-                    default:
-                        try {
-                            // select domain
-                            Helper.selectDomainAndDoIntent(
-                                    mDomains.getJSONObject(i - 2).getString("domain"),
-                                    new Intent(MainActivity.this, DeviceListActivity.class),
-                                    MainActivity.this);
-                        } catch (JSONException je) {
-                            reportExoException(je);
-                        }
-                }
-            }
-        });
+        mDrawerHelper = new DrawerHelper();
+        mDrawerHelper.setup(this);
 
         if (savedInstanceState == null) {
             PlaceholderFragment frag = new PlaceholderFragment();

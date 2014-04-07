@@ -28,6 +28,7 @@ import java.util.Iterator;
 
 public class DeviceListActivity extends ListActivity {
 
+    DrawerHelper mDrawerHelper;
     JSONArray mPortalList;
     SimpleCursorAdapter mAdapter;
     DatabaseHelper mDB;
@@ -36,6 +37,9 @@ public class DeviceListActivity extends ListActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_select_device);
+
+        mDrawerHelper = new DrawerHelper();
+        mDrawerHelper.setup(this);
 
         mDB = new DatabaseHelper(this);
         mDB.RecreateTable();
