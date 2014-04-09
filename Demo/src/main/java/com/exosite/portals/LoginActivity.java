@@ -118,6 +118,8 @@ public class LoginActivity extends FormActivity {
                 });
 
                 return true;
+
+            /*
             case R.id.action_sign_up:
                 // Show a progress spinner
                 mLoginStatusMessageView.setText(R.string.login_progress_signing_up);
@@ -143,6 +145,7 @@ public class LoginActivity extends FormActivity {
 
                 showProgress(false);
                 return true;
+                */
         }
         return false;
     }

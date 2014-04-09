@@ -4,7 +4,4 @@
     <item android:id="@+id/action_forgot_password"
         android:title="@string/action_forgot_password"
         android:showAsAction="never" />
-    <item android:id="@+id/action_sign_up"
-          android:title="@string/action_sign_up"
-          android:showAsAction="never" />
 </menu>
