@@ -119,7 +119,7 @@ public class LoginActivity extends FormActivity {
 
                 return true;
 
-            /*
+            /* TODO: add an API for enumerating available plans
             case R.id.action_sign_up:
                 // Show a progress spinner
                 mLoginStatusMessageView.setText(R.string.login_progress_signing_up);

@@ -40,10 +40,13 @@ import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
 public class DeviceListActivity extends ListActivity {
     private static final String TAG = "DeviceListActivity";
 
+    public static String DEVICE_CACHE_PREFERENCE_KEY = "devices_by_domain_cache";
     DrawerHelper mDrawerHelper;
     PullToRefreshLayout mPullToRefreshLayout;
 
-    ArrayList<JSONObject> mDeviceList;
+    // array of shallow JSONObjects containing view-specific
+    // device information (including devices portal)
+    JSONArray mDeviceList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +67,8 @@ public class DeviceListActivity extends ListActivity {
                 .listener(new OnRefreshListener() {
                     @Override
                     public void onRefreshStarted(View view) {
-                        populateList();
+                        // populate list without using cached data
+                        populateList(false);
                     }
                 })
                 // Finally commit the setup to our PullToRefreshLayout
@@ -79,9 +83,9 @@ public class DeviceListActivity extends ListActivity {
     {
         super.onListItemClick(l, v, position, id);
 
-        JSONObject device = mDeviceList.get(position);
-
         try {
+            JSONObject device = mDeviceList.getJSONObject(position);
+
             String cik = device.getString("cik");
             String name = device.getString("name");
 
@@ -121,19 +125,49 @@ public class DeviceListActivity extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * Populate the list of devices from cache
+     */
     private void populateList() {
+        populateList(true);
+    }
+
+    /**
+     * Populate the list of devices
+     * @param useCache whether or not to use cached device list
+     *                 (if available)
+     */
+    private void populateList(boolean useCache) {
         final SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
+
+        String domain = sharedPreferences.getString("domain", null);
+        if (useCache) {
+            String domainDevicesJSON = sharedPreferences.getString(DEVICE_CACHE_PREFERENCE_KEY, null);
+            if (domainDevicesJSON != null) {
+                try {
+                    JSONObject domainDeviceLists = new JSONObject(domainDevicesJSON);
+                    if (domainDeviceLists.has(domain)) {
+                        mDeviceList = domainDeviceLists.getJSONArray(domain);
+                        updateCursorFromDeviceList();
+                        return;
+                    }
+                } catch (JSONException je) {
+                    Log.e(TAG, je.toString());
+                }
+            }
+        }
 
         String email = sharedPreferences.getString("email", "");
         String password = sharedPreferences.getString("password", "");
         mPullToRefreshLayout.setRefreshing(true);
         // ... and list the user's portals in it
+        Portals.setDomain(domain);
         Portals.listPortalsInBackground(email, password, new ExoCallback<JSONArray>() {
             @Override
             public void done(final JSONArray portalList, ExoException e) {
                 if (portalList != null) {
-                    sharedPreferences.edit().putString("portal_list", portalList.toString());
+                    // get devices for each portal
                     new LoadDevicesTask(getListView().getContext()).execute(portalList);
                 } else {
                     Log.e(TAG, "failed to list portals");
@@ -142,9 +176,48 @@ public class DeviceListActivity extends ListActivity {
         });
     }
 
+    private void updateCursorFromDeviceList() {
+        final ArrayList<String> valuesArray = new ArrayList<String>();
+        final JSONArray devicesArray = new JSONArray();
+
+        // TODO: is values array necessary for ArrayAdapter?
+        try {
+            for (int i = 0; i < mDeviceList.length(); i++) {
+                valuesArray.add(
+                        mDeviceList.getJSONObject(i)
+                                .getString("name"));
+            }
+        } catch (JSONException je) {
+            Log.e(TAG, je.toString());
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                DeviceListActivity.this,
+                android.R.layout.two_line_list_item,
+                android.R.id.text1,
+                valuesArray) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View view = super.getView(position, convertView, parent);
+                TextView text1 = (TextView) view.findViewById(android.R.id.text1);
+                TextView text2 = (TextView) view.findViewById(android.R.id.text2);
+                try {
+                    JSONObject device = mDeviceList.getJSONObject(position);
+                    text1.setText(device.getString("name"));
+                    text2.setText(String.format("Portal: %s",
+                            device.getString("portal_name")));
+                } catch (JSONException e) {
+                    Log.e(TAG, e.toString());
+                }
+                return view;
+            }
+        };
+        setListAdapter(adapter);
+    }
+
     // Represents a task that loads information about devices
     // from OneP on a background thread.
-    class LoadDevicesTask extends AsyncTask<JSONArray, Integer, ArrayList<JSONObject>> {
+    class LoadDevicesTask extends AsyncTask<JSONArray, Integer, JSONArray> {
         private static final String TAG = "LoadDevicesTask";
         private Exception exception;
 
@@ -153,9 +226,9 @@ public class DeviceListActivity extends ListActivity {
             mCtx = ctx;
         }
 
-        protected ArrayList<JSONObject> doInBackground(JSONArray... params) {
+        protected JSONArray doInBackground(JSONArray... params) {
             // list of device information for display
-            ArrayList<JSONObject> response = new ArrayList<JSONObject>();
+            JSONArray response = new JSONArray();
             RPC rpc = new RPC();
             exception = null;
 
@@ -185,7 +258,7 @@ public class DeviceListActivity extends ListActivity {
                         device.put("cik", deviceInfo.getString("key"));
                         device.put("portal_name", portal.getString("name"));
                         device.put("portal_cik", portalCIK);
-                        response.add(device);
+                        response.put(device);
                     }
                 }
 
@@ -203,46 +276,29 @@ public class DeviceListActivity extends ListActivity {
 
         // this is executed on UI thread when doInBackground
         // returns a result
-        protected void onPostExecute(final ArrayList<JSONObject> deviceList) {
+        protected void onPostExecute(final JSONArray deviceList) {
             mPullToRefreshLayout.setRefreshing(false);
             if (exception == null) {
                 mDeviceList = deviceList;
-                final ArrayList<String> valuesArray = new ArrayList<String>();
-                final JSONArray devicesArray = new JSONArray();
+                updateCursorFromDeviceList();
 
-                // TODO: why is values array necessary for ArrayAdapter?
+                // cache device list
+                final SharedPreferences sharedPreferences = PreferenceManager
+                        .getDefaultSharedPreferences(DeviceListActivity.this);
+                String domain = sharedPreferences.getString("domain", null);
+                JSONObject domainDeviceLists = null;
+                String domainDevicesJSON = sharedPreferences.getString(DEVICE_CACHE_PREFERENCE_KEY, null);
                 try {
-                    for (int i = 0; i < deviceList.size(); i++) {
-                        valuesArray.add(
-                            deviceList.get(i)
-                                .getString("name"));
+                    if (domainDevicesJSON != null) {
+                        domainDeviceLists = new JSONObject(domainDevicesJSON);
+                    } else {
+                        domainDeviceLists = new JSONObject();
                     }
+                    domainDeviceLists.put(domain, deviceList);
+                    sharedPreferences.edit().putString(DEVICE_CACHE_PREFERENCE_KEY, domainDeviceLists.toString()).commit();
                 } catch (JSONException je) {
                     Log.e(TAG, je.toString());
                 }
-
-                ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-                        DeviceListActivity.this,
-                        android.R.layout.two_line_list_item,
-                        android.R.id.text1,
-                        valuesArray) {
-                    @Override
-                    public View getView(int position, View convertView, ViewGroup parent) {
-                        View view = super.getView(position, convertView, parent);
-                        TextView text1 = (TextView) view.findViewById(android.R.id.text1);
-                        TextView text2 = (TextView) view.findViewById(android.R.id.text2);
-                        try {
-                            JSONObject device = deviceList.get(position);
-                            text1.setText(device.getString("name"));
-                            text2.setText(String.format("Portal: %s",
-                                    device.getString("portal_name")));
-                        } catch (JSONException e) {
-                            Log.e(TAG, e.toString());
-                        }
-                        return view;
-                    }
-                };
-                setListAdapter(adapter);
             } else {
                 Toast.makeText(getApplicationContext(),
                         String.format("Error fetching devices: %s", exception.getMessage()), Toast.LENGTH_LONG).show();
