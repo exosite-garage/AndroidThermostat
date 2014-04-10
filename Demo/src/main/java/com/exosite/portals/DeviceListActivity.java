@@ -4,7 +4,6 @@ import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteCursor;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
@@ -14,24 +13,37 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.exosite.api.ExoCallback;
+import com.exosite.api.ExoException;
 import com.exosite.api.onep.OneException;
 import com.exosite.api.onep.RPC;
+import com.exosite.api.portals.Portals;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 
+import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
+import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
+import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
+
 public class DeviceListActivity extends ListActivity {
+    private static final String TAG = "DeviceListActivity";
 
     DrawerHelper mDrawerHelper;
-    JSONArray mPortalList;
-    SimpleCursorAdapter mAdapter;
-    DatabaseHelper mDB;
+    PullToRefreshLayout mPullToRefreshLayout;
+
+    ArrayList<JSONObject> mDeviceList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,21 +53,25 @@ public class DeviceListActivity extends ListActivity {
         mDrawerHelper = new DrawerHelper();
         mDrawerHelper.setup(this);
 
-        mDB = new DatabaseHelper(this);
-        mDB.RecreateTable();
-        setupAdapter();
+        // Now find the PullToRefreshLayout to setup
+        mPullToRefreshLayout = (PullToRefreshLayout)findViewById(R.id.ptr_layout);
 
-        Helper.showProgress(true, this);
-        new LoadDevicesTask(getListView().getContext()).execute();
-    }
+        // Now setup the PullToRefreshLayout
+        ActionBarPullToRefresh.from(this)
+                // Mark All Children as pullable
+                .allChildrenArePullable()
+                        // Set a OnRefreshListener
+                .listener(new OnRefreshListener() {
+                    @Override
+                    public void onRefreshStarted(View view) {
+                        populateList();
+                    }
+                })
+                // Finally commit the setup to our PullToRefreshLayout
+                .setup(mPullToRefreshLayout);
 
-    private void setupAdapter() {
-        Cursor mCursor = mDB.GetAllData();
-        String from[] = new String[]{ mDB.colName, mDB.colPortalName };
-        int to[] = new int[] { android.R.id.text1, android.R.id.text2 };
-        mAdapter = new SimpleCursorAdapter(
-                this, android.R.layout.two_line_list_item, mCursor, from, to, 0);
-        setListAdapter(mAdapter);
+        populateList();
+
     }
 
     @Override
@@ -63,20 +79,24 @@ public class DeviceListActivity extends ListActivity {
     {
         super.onListItemClick(l, v, position, id);
 
-        Object o = this.getListAdapter().getItem(position);
-        SQLiteCursor c = (SQLiteCursor)o;
-        String cik = c.getString(c.getColumnIndex(DatabaseHelper.colCIK));
-        String name = c.getString(c.getColumnIndex(DatabaseHelper.colName));
+        JSONObject device = mDeviceList.get(position);
 
-        // select a device to use in the Thermostat demo
-        SharedPreferences sharedPreferences = PreferenceManager
-                .getDefaultSharedPreferences(this);
-        sharedPreferences.edit().putString(SettingsActivity.KEY_PREF_DEVICE_CIK, cik).commit();
-        sharedPreferences.edit().putString(SettingsActivity.KEY_PREF_DEVICE_NAME, name).commit();
+        try {
+            String cik = device.getString("cik");
+            String name = device.getString("name");
 
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
-        finish();
+            // select a device to use in the Thermostat demo
+            SharedPreferences sharedPreferences = PreferenceManager
+                    .getDefaultSharedPreferences(this);
+            sharedPreferences.edit().putString(SettingsActivity.KEY_PREF_DEVICE_CIK, cik).commit();
+            sharedPreferences.edit().putString(SettingsActivity.KEY_PREF_DEVICE_NAME, name).commit();
+
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        } catch (JSONException je) {
+            Log.e(TAG, je.toString());
+        }
     }
 
     @Override
@@ -101,85 +121,132 @@ public class DeviceListActivity extends ListActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void populateList() {
+        final SharedPreferences sharedPreferences = PreferenceManager
+                .getDefaultSharedPreferences(this);
+
+        String email = sharedPreferences.getString("email", "");
+        String password = sharedPreferences.getString("password", "");
+        mPullToRefreshLayout.setRefreshing(true);
+        // ... and list the user's portals in it
+        Portals.listPortalsInBackground(email, password, new ExoCallback<JSONArray>() {
+            @Override
+            public void done(final JSONArray portalList, ExoException e) {
+                if (portalList != null) {
+                    sharedPreferences.edit().putString("portal_list", portalList.toString());
+                    new LoadDevicesTask(getListView().getContext()).execute(portalList);
+                } else {
+                    Log.e(TAG, "failed to list portals");
+                }
+            }
+        });
+    }
+
     // Represents a task that loads information about devices
     // from OneP on a background thread.
-    class LoadDevicesTask extends AsyncTask<Void, Integer, JSONObject> {
+    class LoadDevicesTask extends AsyncTask<JSONArray, Integer, ArrayList<JSONObject>> {
         private static final String TAG = "LoadDevicesTask";
         private Exception exception;
+
         Context mCtx;
         public LoadDevicesTask(Context ctx) {
             mCtx = ctx;
         }
 
-        protected JSONObject doInBackground(Void... params) {
-            Bundle bundle = getIntent().getExtras();
-            // maps portals RIDs to info listing for each portal
-            JSONObject response = new JSONObject();
+        protected ArrayList<JSONObject> doInBackground(JSONArray... params) {
+            // list of device information for display
+            ArrayList<JSONObject> response = new ArrayList<JSONObject>();
             RPC rpc = new RPC();
             exception = null;
-            try {
-                SharedPreferences sharedPreferences = PreferenceManager
-                        .getDefaultSharedPreferences(DeviceListActivity.this);
 
-                mPortalList = new JSONArray(sharedPreferences.getString("portal_list", "[]"));
+            try {
+                JSONArray portalList = params[0];
                 JSONObject infoOptions = new JSONObject();
                 infoOptions.put("description", true);
                 infoOptions.put("key", true);
-                for (int i = 0; i < mPortalList.length(); i++) {
-                    JSONObject portal = (JSONObject)mPortalList.get(i);
-                    String cik = portal.getString("key");
+                for (int i = 0; i < portalList.length(); i++) {
+                    JSONObject portal = (JSONObject)portalList.get(i);
+                    String portalCIK = portal.getString("key");
                     JSONArray types = new JSONArray();
                     types.put("client");
-                    JSONObject infoListing = rpc.infoListing(cik, types, infoOptions);
+                    JSONObject infoListing = rpc.infoListing(portalCIK, types, infoOptions);
 
-                    JSONObject clientsInfoListing = infoListing.getJSONObject("client");
-
-                    Iterator<String> iter = clientsInfoListing.keys();
+                    JSONObject clients = infoListing.getJSONObject("client");
+                    Iterator<String> iter = clients.keys();
                     while (iter.hasNext()) {
-                        String rid = iter.next();
-                        JSONObject info = clientsInfoListing.getJSONObject(rid);
-                        mDB.InsertDevice(
-                                rid,
-                                String.format("%s (%s...)",
-                                        info.getJSONObject("description").getString("name"),
-                                        info.getString("key").substring(0, 8)),
-                                info.getString("key"),
-                                portal.getString("rid"),
-                                String.format("Portal: %s", portal.getString("name")),
-                                portal.getString("key"));
+                        String deviceRID = iter.next();
+                        JSONObject deviceInfo = clients.getJSONObject(deviceRID);
+                        String name = deviceInfo.getJSONObject("description").getString("name");
+
+                        // information for display
+                        JSONObject device = new JSONObject();
+                        device.put("rid", deviceRID);
+                        device.put("name", name);
+                        device.put("cik", deviceInfo.getString("key"));
+                        device.put("portal_name", portal.getString("name"));
+                        device.put("portal_cik", portalCIK);
+                        response.add(device);
                     }
-                    response.put(portal.getString("rid"), clientsInfoListing);
                 }
-                return response;
 
             } catch (JSONException e) {
                 exception = e;
                 Log.e(TAG, "JSONException in ReadPortals.doInBackground: " + e.toString());
+                return null;
             } catch (OneException e) {
                 exception = e;
                 Log.e(TAG, "OneException: " + e.toString());
+                return null;
             }
-            return null;
+            return response;
         }
 
         // this is executed on UI thread when doInBackground
         // returns a result
-        protected void onPostExecute(JSONObject infoListing) {
+        protected void onPostExecute(final ArrayList<JSONObject> deviceList) {
+            mPullToRefreshLayout.setRefreshing(false);
             if (exception == null) {
-                Helper.showProgress(false, DeviceListActivity.this);
+                mDeviceList = deviceList;
+                final ArrayList<String> valuesArray = new ArrayList<String>();
+                final JSONArray devicesArray = new JSONArray();
 
-                Cursor cursor = mDB.GetAllData();
-                mAdapter.changeCursor(cursor);
-                mAdapter.notifyDataSetChanged();
+                // TODO: why is values array necessary for ArrayAdapter?
+                try {
+                    for (int i = 0; i < deviceList.size(); i++) {
+                        valuesArray.add(
+                            deviceList.get(i)
+                                .getString("name"));
+                    }
+                } catch (JSONException je) {
+                    Log.e(TAG, je.toString());
+                }
 
-                // cache the info listing so that we can display the list when offline
-                SharedPreferences sharedPreferences = PreferenceManager
-                        .getDefaultSharedPreferences(mCtx);
-                sharedPreferences.edit().putString("info_listing", infoListing.toString()).commit();
-
+                ArrayAdapter<String> adapter = new ArrayAdapter<String>(
+                        DeviceListActivity.this,
+                        android.R.layout.two_line_list_item,
+                        android.R.id.text1,
+                        valuesArray) {
+                    @Override
+                    public View getView(int position, View convertView, ViewGroup parent) {
+                        View view = super.getView(position, convertView, parent);
+                        TextView text1 = (TextView) view.findViewById(android.R.id.text1);
+                        TextView text2 = (TextView) view.findViewById(android.R.id.text2);
+                        try {
+                            JSONObject device = deviceList.get(position);
+                            text1.setText(device.getString("name"));
+                            text2.setText(String.format("Portal: %s",
+                                    device.getString("portal_name")));
+                        } catch (JSONException e) {
+                            Log.e(TAG, e.toString());
+                        }
+                        return view;
+                    }
+                };
+                setListAdapter(adapter);
             } else {
                 Toast.makeText(getApplicationContext(),
                         String.format("Error fetching devices: %s", exception.getMessage()), Toast.LENGTH_LONG).show();
+                Log.e(TAG, exception.toString());
             }
         }
     }

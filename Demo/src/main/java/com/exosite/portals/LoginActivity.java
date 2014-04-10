@@ -226,6 +226,8 @@ public class LoginActivity extends FormActivity {
                 @Override
                 public void done(JSONArray result, ExoException e) {
                     mInProgress = false;
+                    showProgress(false);
+
                     if (result != null) {
                         SharedPreferences sharedPreferences = PreferenceManager
                                 .getDefaultSharedPreferences(LoginActivity.this);

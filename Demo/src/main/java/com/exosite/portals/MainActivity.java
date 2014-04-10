@@ -181,8 +181,7 @@ public class MainActivity extends ActionBarActivity {
         private static final String TAG = "PlaceholderFragment";
         public static final String FRAGMENT_TAG = "PLACEHOLDER_FRAGMENT";
 
-        String lastToast;
-        private PullToRefreshLayout mPullToRefreshLayout;
+        PullToRefreshLayout mPullToRefreshLayout;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -223,7 +222,6 @@ public class MainActivity extends ActionBarActivity {
                 JSONObject infoOptions = new JSONObject();
                 infoOptions.put("description", true);
                 final PlaceholderFragment fragment = this;
-                //Helper.showProgress(true, getActivity());
                 mPullToRefreshLayout.setRefreshing(true);
                 rpc.infoListingInBackground(mCIK, types, infoOptions, new ExoCallback<JSONObject>() {
                     @Override
@@ -253,8 +251,6 @@ public class MainActivity extends ActionBarActivity {
                                 public void done(HashMap<String, TimeSeriesPoint> result, ExoException e) {
                                     mPullToRefreshLayout.setRefreshing(false);
                                     if (result != null) {
-                                        //Helper.showProgress(false, getActivity());
-
                                         final ArrayList<String> valuesArray = new ArrayList<String>();
                                         for (String rid: rids) {
                                             TimeSeriesPoint pt = result.get(rid);

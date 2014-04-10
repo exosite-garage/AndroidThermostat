@@ -31,22 +31,8 @@ public class Helper {
         sharedPreferences.edit().putString("domain", domain).commit();
         Portals.setDomain(domain);
 
-        // ... and list the user's portals in it
-        Portals.listPortalsInBackground(email, password, new ExoCallback<JSONArray>() {
-            @Override
-            public void done(JSONArray result, ExoException e) {
-                if (result != null) {
-                    SharedPreferences sharedPreferences = PreferenceManager
-                            .getDefaultSharedPreferences(activity);
-                    sharedPreferences.edit().putString("portal_list", result.toString()).commit();
-
-                    activity.startActivity(intent);
-                    activity.finish();
-                } else {
-                    Log.e(TAG, "failed to list portals");
-                }
-            }
-        });
+        activity.startActivity(intent);
+        activity.finish();
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
