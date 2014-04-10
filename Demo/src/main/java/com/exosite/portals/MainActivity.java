@@ -35,6 +35,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
+import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
+import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
+
 public class MainActivity extends ActionBarActivity {
     /**
      * Exosite Portals plan identifier for new users.
@@ -178,12 +182,30 @@ public class MainActivity extends ActionBarActivity {
         public static final String FRAGMENT_TAG = "PLACEHOLDER_FRAGMENT";
 
         String lastToast;
+        private PullToRefreshLayout mPullToRefreshLayout;
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
             setRetainInstance(true);
+
+            // Now find the PullToRefreshLayout to setup
+            mPullToRefreshLayout = (PullToRefreshLayout) rootView.findViewById(R.id.ptr_layout);
+
+            // Now setup the PullToRefreshLayout
+            ActionBarPullToRefresh.from(getActivity())
+                    // Mark All Children as pullable
+                    .allChildrenArePullable()
+                    // Set a OnRefreshListener
+                    .listener(new OnRefreshListener() {
+                        @Override
+                        public void onRefreshStarted(View view) {
+                            populateList();
+                        }
+                    })
+                    // Finally commit the setup to our PullToRefreshLayout
+                    .setup(mPullToRefreshLayout);
 
             // setup list
             populateList();
@@ -202,6 +224,7 @@ public class MainActivity extends ActionBarActivity {
                 infoOptions.put("description", true);
                 final PlaceholderFragment fragment = this;
                 //Helper.showProgress(true, getActivity());
+                mPullToRefreshLayout.setRefreshing(true);
                 rpc.infoListingInBackground(mCIK, types, infoOptions, new ExoCallback<JSONObject>() {
                     @Override
                     public void done(JSONObject result, ExoException e) {
@@ -228,6 +251,7 @@ public class MainActivity extends ActionBarActivity {
                             rpc.readLatestInBackground(mCIK, rids, new ExoCallback<HashMap<String, TimeSeriesPoint>>() {
                                 @Override
                                 public void done(HashMap<String, TimeSeriesPoint> result, ExoException e) {
+                                    mPullToRefreshLayout.setRefreshing(false);
                                     if (result != null) {
                                         //Helper.showProgress(false, getActivity());
 
@@ -253,11 +277,15 @@ public class MainActivity extends ActionBarActivity {
                                             }
                                         };
                                         setListAdapter(adapter);
+                                    } else {
+                                        reportExoException(e);
                                     }
+
                                 }
                             });
 
                         } else {
+                            mPullToRefreshLayout.setRefreshing(false);
                             reportExoException(e);
                         }
                     }
