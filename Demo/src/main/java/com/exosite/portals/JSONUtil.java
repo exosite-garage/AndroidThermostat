@@ -23,6 +23,23 @@ public class JSONUtil {
         return res;
     }
 
+    public static JSONArray sortByTwoProperties(
+            JSONArray array, final String property1, final String property2, final String fallback) {
+        return JSONUtil.sort(array, new Comparator() {
+            public int compare(Object a, Object b){
+                JSONObject ja = (JSONObject)a;
+                JSONObject jb = (JSONObject)b;
+                int comp = ja.optString(property1, fallback).toLowerCase().compareTo(
+                           jb.optString(property1, fallback).toLowerCase());
+                if (comp == 0) {
+                    comp = ja.optString(property2, fallback).toLowerCase().compareTo(
+                           jb.optString(property2, fallback).toLowerCase());
+                }
+                return comp;
+            }
+        });
+    }
+
     public static JSONArray sortByProperty(JSONArray array, final String property, final String fallback) {
         return JSONUtil.sort(array, new Comparator() {
             public int compare(Object a, Object b){
@@ -33,4 +50,5 @@ public class JSONUtil {
             }
         });
     }
+
 }

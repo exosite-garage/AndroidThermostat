@@ -28,7 +28,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
@@ -284,7 +283,7 @@ public class DeviceListActivity extends ListActivity {
                     }
 
                     // sort by friendly name
-                    response = JSONUtil.sortByProperty(response, "friendly", "");
+                    response = JSONUtil.sortByTwoProperties(response, "portal_name", "friendly", "");
 
                 }
 

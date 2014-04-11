@@ -103,7 +103,7 @@ public class LoginActivity extends FormActivity {
                     public void done(Void result, ExoException e) {
                         mInProgress = false;
                         showProgress(false);
-                        if (result != null) {
+                        if (e == null) {
                             Toast.makeText(getApplicationContext(),
                                     String.format("Password recovery email sent to %s", mEmail), Toast.LENGTH_LONG).show();
                         } else {
