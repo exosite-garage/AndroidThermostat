@@ -83,7 +83,7 @@ public class DeviceListActivity extends ListActivity {
             JSONObject device = mDeviceList.getJSONObject(position);
 
             String cik = device.getString("cik");
-            String name = device.getString("name");
+            String name = device.getString("friendly");
 
             // select a device to use in the Thermostat demo
             SharedPreferences sharedPreferences = PreferenceManager
@@ -194,14 +194,7 @@ public class DeviceListActivity extends ListActivity {
                 TextView portalText = (TextView) view.findViewById(R.id.device_portal);
                 try {
                     JSONObject device = mDeviceList.getJSONObject(position);
-                    if (device.getString("sn") == null) {
-                        nameText.setText(device.getString("name"));
-                    } else {
-                        nameText.setText(String.format("%s (%s/%s)",
-                                device.getString("name"),
-                                device.getString("model"),
-                                device.getString("sn")));
-                    }
+                    nameText.setText(device.getString("friendly"));
                     portalText.setText(String.format("Portal: %s",
                             device.getString("portal_name")));
                 } catch (JSONException e) {
@@ -256,7 +249,6 @@ public class DeviceListActivity extends ListActivity {
                         device.put("cik", deviceInfo.getString("key"));
                         device.put("portal_name", portal.getString("name"));
                         device.put("portal_cik", portalCIK);
-
                         // get meta information
                         String metaString = deviceInfo.getJSONObject("description").getString("meta");
                         JSONObject meta = null;
@@ -270,10 +262,22 @@ public class DeviceListActivity extends ListActivity {
                         if (meta == null) {
                             device.put("model", null);
                             device.put("sn", null);
+                            device.put("friendly", device.getString("name"));
                         } else {
-                            JSONObject metaDevice = meta.getJSONObject("device");
-                            device.put("model", metaDevice.getString("model"));
-                            device.put("sn", metaDevice.getString("sn"));
+                            try {
+                                JSONObject metaDevice = meta.getJSONObject("device");
+                                device.put("model", metaDevice.getString("model"));
+                                device.put("sn", metaDevice.getString("sn"));
+                                device.put("friendly", String.format("%s (%s/%s)",
+                                        device.getString("name"),
+                                        device.getString("model"),
+                                        device.getString("sn")));
+                            } catch (JSONException je) {
+                                // non Portals compatible meta (deprecated format, maybe?)
+                                device.put("model", null);
+                                device.put("sn", null);
+                                device.put("friendly", device.getString("name"));
+                            }
                         }
                         response.put(device);
                     }
