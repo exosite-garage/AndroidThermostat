@@ -9,10 +9,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:text="Name" />
     <TextView
         android:id="@+id/device_portal"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:text="Portal" />
 
 </LinearLayout>

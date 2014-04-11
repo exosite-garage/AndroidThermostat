@@ -152,6 +152,14 @@ public class MainActivity extends ActionBarActivity {
     }
 
     @Override
+    public void onBackPressed(){
+        Intent intent = new Intent(this, DeviceListActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
@@ -208,8 +216,6 @@ public class MainActivity extends ActionBarActivity {
         private static final int MINUTE_MILLIS = 60 * SECOND_MILLIS;
         private static final int HOUR_MILLIS = 60 * MINUTE_MILLIS;
         private static final int DAY_MILLIS = 24 * HOUR_MILLIS;
-
-
         public static String getTimeAgo(long time, Context ctx) {
             if (time < 1000000000000L) {
                 // if timestamp given in seconds, convert to millis
@@ -290,7 +296,7 @@ public class MainActivity extends ActionBarActivity {
                                                 timestampsArray.add("");
                                             } else {
                                                 ts = getTimeAgo(pt.getTimeStamp(), getActivity());
-                                                timestampsArray.add(ts);
+                                                timestampsArray.add(String.format("Written %s", ts));
                                             }
                                         }
                                         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
