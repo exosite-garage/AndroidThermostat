@@ -233,11 +233,12 @@ public class LoginActivity extends FormActivity {
                         try {
                             // for now just default to the first domain
                             String defaultDomain = result.getJSONObject(0).getString("domain");
-
+                            Intent intent = new Intent(LoginActivity.this, DeviceListActivity.class);
                             Helper.selectDomainAndDoIntent(
                                     defaultDomain,
-                                    new Intent(LoginActivity.this, DeviceListActivity.class),
+                                    intent,
                                     LoginActivity.this);
+                            finish();
 
                         } catch (JSONException je) {
                             reportExoException(e);

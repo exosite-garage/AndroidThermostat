@@ -8,6 +8,8 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.format.DateUtils;
+import android.text.format.Time;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -27,6 +29,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -201,6 +204,42 @@ public class MainActivity extends ActionBarActivity {
             return rootView;
         }
 
+        private static final int SECOND_MILLIS = 1000;
+        private static final int MINUTE_MILLIS = 60 * SECOND_MILLIS;
+        private static final int HOUR_MILLIS = 60 * MINUTE_MILLIS;
+        private static final int DAY_MILLIS = 24 * HOUR_MILLIS;
+
+
+        public static String getTimeAgo(long time, Context ctx) {
+            if (time < 1000000000000L) {
+                // if timestamp given in seconds, convert to millis
+                time *= 1000;
+            }
+
+            long now = System.currentTimeMillis();
+            if (time > now || time <= 0) {
+                return null;
+            }
+
+            // TODO: localize
+            final long diff = now - time;
+            if (diff < MINUTE_MILLIS) {
+                return "just now";
+            } else if (diff < 2 * MINUTE_MILLIS) {
+                return "a minute ago";
+            } else if (diff < 50 * MINUTE_MILLIS) {
+                return diff / MINUTE_MILLIS + " minutes ago";
+            } else if (diff < 90 * MINUTE_MILLIS) {
+                return "an hour ago";
+            } else if (diff < 24 * HOUR_MILLIS) {
+                return diff / HOUR_MILLIS + " hours ago";
+            } else if (diff < 48 * HOUR_MILLIS) {
+                return "yesterday";
+            } else {
+                return diff / DAY_MILLIS + " days ago";
+            }
+        }
+
         void populateList() {
 
             try {
@@ -241,23 +280,34 @@ public class MainActivity extends ActionBarActivity {
                                     mPullToRefreshLayout.setRefreshing(false);
                                     if (result != null) {
                                         final ArrayList<String> valuesArray = new ArrayList<String>();
+                                        final ArrayList<String> timestampsArray = new ArrayList<String>();
                                         for (String rid: rids) {
                                             TimeSeriesPoint pt = result.get(rid);
                                             valuesArray.add(pt == null ? "No value" : pt.getValue().toString());
+                                            String ts;
+
+                                            if (pt == null) {
+                                                timestampsArray.add("");
+                                            } else {
+                                                ts = getTimeAgo(pt.getTimeStamp(), getActivity());
+                                                timestampsArray.add(ts);
+                                            }
                                         }
                                         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
                                                 fragment.getActivity(),
-                                                android.R.layout.two_line_list_item,
-                                                android.R.id.text1,
+                                                //android.R.layout.two_line_list_item,
+                                                R.layout.resource_row_item,
+                                                R.id.resource_name,
                                                 valuesArray) {
                                             @Override
                                             public View getView(int position, View convertView, ViewGroup parent) {
                                                 View view = super.getView(position, convertView, parent);
-                                                TextView text1 = (TextView) view.findViewById(android.R.id.text1);
-                                                TextView text2 = (TextView) view.findViewById(android.R.id.text2);
-
-                                                text1.setText(resourceArray.get(position));
-                                                text2.setText(valuesArray.get(position));
+                                                TextView nameText = (TextView) view.findViewById(R.id.resource_name);
+                                                TextView timestampText = (TextView) view.findViewById(R.id.resource_timestamp);
+                                                TextView valueText = (TextView) view.findViewById(R.id.resource_value);
+                                                nameText.setText(resourceArray.get(position));
+                                                timestampText.setText(timestampsArray.get(position));
+                                                valueText.setText(valuesArray.get(position));
                                                 return view;
                                             }
                                         };

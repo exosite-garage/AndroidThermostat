@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -17,22 +18,36 @@ import com.exosite.api.portals.Portals;
 
 import org.json.JSONArray;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 
 public class Helper {
     private static final String TAG = "Helper";
 
-    static void selectDomainAndDoIntent(String domain, final Intent intent, final Activity activity) {
+    static void selectDomain(String domain, final Activity activity) {
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(activity);
 
-        String email = sharedPreferences.getString("email", "");
-        String password = sharedPreferences.getString("password", "");
-
         sharedPreferences.edit().putString("domain", domain).commit();
         Portals.setDomain(domain);
+    }
 
-        activity.startActivity(intent);
-        activity.finish();
+    static void selectDomainAndDoIntent(String domain, final Intent intent, final Activity activity) {
+        selectDomain(domain, activity);
+
+        if (intent != null) {
+            intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            activity.startActivity(intent);
+        }
+    }
+
+    public static String unixToDate(int unix_timestamp) throws ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM d H:mm", Locale.US);
+        String date = sdf.format(unix_timestamp * 1000);
+
+        return date.toString();
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)

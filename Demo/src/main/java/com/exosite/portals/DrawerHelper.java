@@ -30,8 +30,8 @@ public class DrawerHelper {
         mDrawerList = (ListView) activity.findViewById(R.id.left_drawer);
 
         List<String> menuOptions = new ArrayList<String>();
-        menuOptions.add("Select Device");
         menuOptions.add("Log out");
+        final int numOptionsBeforeDomains = menuOptions.size();
 
         try {
             // get user's domains
@@ -40,7 +40,6 @@ public class DrawerHelper {
             mDomains = new JSONArray(sharedPreferences.getString("domain_list", "[]"));
             for (int i = 0; i < mDomains.length(); i++) {
                 JSONObject domain = (JSONObject)mDomains.get(i);
-
                 menuOptions.add(domain.getString("domain"));
             }
         } catch (JSONException je) {
@@ -59,11 +58,6 @@ public class DrawerHelper {
 
                 switch(i) {
                     case 0:
-                        // select device
-                        intent = new Intent(activity.getApplicationContext(), DeviceListActivity.class);
-                        activity.startActivity(intent);
-                        break;
-                    case 1:
                         // log out
                         sharedPreferences.edit().remove("password").commit();
                         Cache.ClearAllCache(activity);
@@ -72,11 +66,22 @@ public class DrawerHelper {
                         break;
                     default:
                         try {
-                            // select domain
-                            Helper.selectDomainAndDoIntent(
-                                    mDomains.getJSONObject(i - 2).getString("domain"),
-                                    new Intent(activity, DeviceListActivity.class),
-                                    activity);
+                            String domain = mDomains.getJSONObject(
+                                    i - numOptionsBeforeDomains).getString("domain");
+                            if (activity instanceof DeviceListActivity) {
+                                // select domain
+                                Helper.selectDomain(
+                                        domain,
+                                        activity);
+                                mDrawerLayout.closeDrawers();
+                                ((DeviceListActivity)activity).populateList();
+                            } else {
+                                Helper.selectDomainAndDoIntent(
+                                        domain,
+                                        new Intent(activity, DeviceListActivity.class),
+                                        activity);
+                            }
+
                         } catch (JSONException je) {
                             Log.e(TAG, je.toString());
                         }

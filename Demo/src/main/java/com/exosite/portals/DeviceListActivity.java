@@ -93,7 +93,6 @@ public class DeviceListActivity extends ListActivity {
 
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
-            finish();
         } catch (JSONException je) {
             Log.e(TAG, je.toString());
         }
@@ -124,7 +123,7 @@ public class DeviceListActivity extends ListActivity {
     /**
      * Populate the list of devices from cache
      */
-    private void populateList() {
+    public void populateList() {
         populateList(true);
     }
 
@@ -133,11 +132,12 @@ public class DeviceListActivity extends ListActivity {
      * @param useCache whether or not to use cached device list
      *                 (if available)
      */
-    private void populateList(boolean useCache) {
+    public void populateList(boolean useCache) {
         final SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
 
         final String domain = sharedPreferences.getString("domain", null);
+        setTitle(domain);
         if (useCache) {
             mDeviceList = Cache.RestoreDeviceListFromCache(DeviceListActivity.this, domain);
             if (mDeviceList != null) {
@@ -183,18 +183,19 @@ public class DeviceListActivity extends ListActivity {
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(
                 DeviceListActivity.this,
-                android.R.layout.two_line_list_item,
-                android.R.id.text1,
+                //android.R.layout.two_line_list_item,
+                R.layout.device_row_item,
+                R.id.device_name,
                 valuesArray) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 View view = super.getView(position, convertView, parent);
-                TextView text1 = (TextView) view.findViewById(android.R.id.text1);
-                TextView text2 = (TextView) view.findViewById(android.R.id.text2);
+                TextView nameText = (TextView) view.findViewById(R.id.device_name);
+                TextView portalText = (TextView) view.findViewById(R.id.device_portal);
                 try {
                     JSONObject device = mDeviceList.getJSONObject(position);
-                    text1.setText(device.getString("name"));
-                    text2.setText(String.format("Portal: %s",
+                    nameText.setText(device.getString("name"));
+                    portalText.setText(String.format("Portal: %s",
                             device.getString("portal_name")));
                 } catch (JSONException e) {
                     Log.e(TAG, e.toString());
