@@ -4,23 +4,14 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.View;
 
-import com.exosite.api.ExoCallback;
-import com.exosite.api.ExoException;
 import com.exosite.api.portals.Portals;
 
-import org.json.JSONArray;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
 
 
 public class Helper {
@@ -41,13 +32,6 @@ public class Helper {
             intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             activity.startActivity(intent);
         }
-    }
-
-    public static String unixToDate(int unix_timestamp) throws ParseException {
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM d H:mm", Locale.US);
-        String date = sdf.format(unix_timestamp * 1000);
-
-        return date.toString();
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
