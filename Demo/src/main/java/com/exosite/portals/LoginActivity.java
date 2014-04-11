@@ -85,6 +85,7 @@ public class LoginActivity extends FormActivity {
         mPasswordView.setTypeface(Typeface.DEFAULT);
         mPasswordView.setTransformationMethod(new PasswordTransformationMethod());
 
+        setTitle("Portals for Android");
         mLoginStatusMessageView = (TextView) findViewById(R.id.login_status_message);
 
         findViewById(R.id.sign_in_button).setOnClickListener(new View.OnClickListener() {
