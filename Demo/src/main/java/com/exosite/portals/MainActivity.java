@@ -296,7 +296,7 @@ public class MainActivity extends ActionBarActivity {
                                                 timestampsArray.add("");
                                             } else {
                                                 ts = getTimeAgo(pt.getTimeStamp(), getActivity());
-                                                timestampsArray.add(String.format("Written %s", ts));
+                                                timestampsArray.add(String.format("last updated %s", ts));
                                             }
                                         }
                                         ArrayAdapter<String> adapter = new ArrayAdapter<String>(

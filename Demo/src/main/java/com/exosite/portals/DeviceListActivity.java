@@ -194,7 +194,14 @@ public class DeviceListActivity extends ListActivity {
                 TextView portalText = (TextView) view.findViewById(R.id.device_portal);
                 try {
                     JSONObject device = mDeviceList.getJSONObject(position);
-                    nameText.setText(device.getString("name"));
+                    if (device.getString("sn") == null) {
+                        nameText.setText(device.getString("name"));
+                    } else {
+                        nameText.setText(String.format("%s (%s/%s)",
+                                device.getString("name"),
+                                device.getString("model"),
+                                device.getString("sn")));
+                    }
                     portalText.setText(String.format("Portal: %s",
                             device.getString("portal_name")));
                 } catch (JSONException e) {
@@ -249,19 +256,38 @@ public class DeviceListActivity extends ListActivity {
                         device.put("cik", deviceInfo.getString("key"));
                         device.put("portal_name", portal.getString("name"));
                         device.put("portal_cik", portalCIK);
+
+                        // get meta information
+                        String metaString = deviceInfo.getJSONObject("description").getString("meta");
+                        JSONObject meta = null;
+                        if (metaString.length() > 0) {
+                            try {
+                                meta = new JSONObject(metaString);
+                            } catch (JSONException je) {
+                                // non Portals compatible meta
+                            }
+                        }
+                        if (meta == null) {
+                            device.put("model", null);
+                            device.put("sn", null);
+                        } else {
+                            JSONObject metaDevice = meta.getJSONObject("device");
+                            device.put("model", metaDevice.getString("model"));
+                            device.put("sn", metaDevice.getString("sn"));
+                        }
                         response.put(device);
                     }
                 }
 
-            } catch (JSONException e) {
-                exception = e;
-                Log.e(TAG, "JSONException in ReadPortals.doInBackground: " + e.toString());
-                return null;
-            } catch (OneException e) {
-                exception = e;
-                Log.e(TAG, "OneException: " + e.toString());
-                return null;
-            }
+        } catch (JSONException e) {
+            exception = e;
+            Log.e(TAG, "JSONException in ReadPortals.doInBackground: " + e.toString());
+            return null;
+        } catch (OneException e) {
+            exception = e;
+            Log.e(TAG, "OneException: " + e.toString());
+            return null;
+        }
             return response;
         }
 
