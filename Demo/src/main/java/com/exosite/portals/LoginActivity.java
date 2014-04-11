@@ -2,9 +2,13 @@ package com.exosite.portals;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.text.Editable;
+import android.text.Selection;
 import android.text.TextUtils;
+import android.text.method.PasswordTransformationMethod;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -68,6 +72,18 @@ public class LoginActivity extends FormActivity {
                 return false;
             }
         });
+
+        if (mEmail.length() > 0) {
+            // if email is already entered, put cursor in password field
+            mPasswordView.requestFocus();
+            int position = mPasswordView.length();
+            Editable etext = mPasswordView.getText();
+            Selection.setSelection(etext, position);
+        }
+
+        // fix password field font
+        mPasswordView.setTypeface(Typeface.DEFAULT);
+        mPasswordView.setTransformationMethod(new PasswordTransformationMethod());
 
         mLoginStatusMessageView = (TextView) findViewById(R.id.login_status_message);
 
