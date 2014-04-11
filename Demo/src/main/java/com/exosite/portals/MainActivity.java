@@ -14,9 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,7 +22,6 @@ import com.exosite.api.ExoCallback;
 import com.exosite.api.ExoException;
 import com.exosite.api.onep.RPC;
 import com.exosite.api.onep.TimeSeriesPoint;
-import com.exosite.api.portals.Portals;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,7 +30,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 
 import uk.co.senab.actionbarpulltorefresh.library.PullToRefreshLayout;
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
@@ -43,19 +39,15 @@ public class MainActivity extends ActionBarActivity {
     /**
      * Exosite Portals plan identifier for new users.
      */
-    public static final String PLAN_ID = "3676938388";
+    public static final String PLAN_ID = "";
     /**
      * Vendor identifier for new devices.
      */
-    public static final String VENDOR = "texasinstruments";
+    public static final String VENDOR = "";
     /**
      * Device model identifier for new devices.
      */
-    public static final String DEVICE_MODEL = "cc3101lpv1";
-    /**
-     * Domain for interacting with Portals API
-     */
-    public static final String PORTALS_DOMAIN = "ti.exosite.com";
+    public static final String DEVICE_MODEL = "";
 
     private static final String TAG = "MainActivity";
     // TI device CIK
@@ -107,9 +99,6 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // configure the domain for Portals API calls
-        Portals.setDomain(MainActivity.PORTALS_DOMAIN);
 
         if ( !getLogin() ) {
             return;

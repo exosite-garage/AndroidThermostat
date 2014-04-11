@@ -29,11 +29,6 @@ import org.json.JSONException;
 public class LoginActivity extends FormActivity {
     private static final String TAG = "LoginActivity";
 
-    enum LoginTask {
-        SignIn,
-        SignUp
-    }
-
     /**
      * Keep track of the login and password recovery tasks so we can cancel them if requested.
      */
@@ -219,7 +214,6 @@ public class LoginActivity extends FormActivity {
             // perform the user login attempt.
             mLoginStatusMessageView.setText(R.string.login_progress_signing_in);
             showProgress(true);
-            Portals.setDomain(MainActivity.PORTALS_DOMAIN);
             mInProgress = true;
 
             Portals.listDomainsInBackground(mEmail, mPassword, new ExoCallback<JSONArray>() {

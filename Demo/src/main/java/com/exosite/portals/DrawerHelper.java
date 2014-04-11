@@ -66,9 +66,7 @@ public class DrawerHelper {
                     case 1:
                         // log out
                         sharedPreferences.edit().remove("password").commit();
-                        // remove cached devices
-                        sharedPreferences.edit().remove(DeviceListActivity.DEVICE_CACHE_PREFERENCE_KEY).commit();
-
+                        Cache.ClearAllCache(activity);
                         intent = new Intent(activity.getApplicationContext(), LoginActivity.class);
                         activity.startActivity(intent);
                         break;

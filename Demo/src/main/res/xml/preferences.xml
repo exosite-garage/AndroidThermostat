@@ -3,7 +3,7 @@
     <Preference
         android:key="version"
         android:title="@string/version"
-        android:summary="0.1.0"/>
+        android:summary="0.2.0"/>
     <EditTextPreference
         android:key="cik"
         android:title="@string/cik"

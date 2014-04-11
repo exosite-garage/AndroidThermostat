@@ -4,10 +4,8 @@ import android.app.ListActivity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.sqlite.SQLiteCursor;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.v4.widget.SimpleCursorAdapter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -30,7 +28,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 
 import uk.co.senab.actionbarpulltorefresh.library.ActionBarPullToRefresh;
@@ -40,7 +37,6 @@ import uk.co.senab.actionbarpulltorefresh.library.listeners.OnRefreshListener;
 public class DeviceListActivity extends ListActivity {
     private static final String TAG = "DeviceListActivity";
 
-    public static String DEVICE_CACHE_PREFERENCE_KEY = "devices_by_domain_cache";
     DrawerHelper mDrawerHelper;
     PullToRefreshLayout mPullToRefreshLayout;
 
@@ -141,20 +137,12 @@ public class DeviceListActivity extends ListActivity {
         final SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(this);
 
-        String domain = sharedPreferences.getString("domain", null);
+        final String domain = sharedPreferences.getString("domain", null);
         if (useCache) {
-            String domainDevicesJSON = sharedPreferences.getString(DEVICE_CACHE_PREFERENCE_KEY, null);
-            if (domainDevicesJSON != null) {
-                try {
-                    JSONObject domainDeviceLists = new JSONObject(domainDevicesJSON);
-                    if (domainDeviceLists.has(domain)) {
-                        mDeviceList = domainDeviceLists.getJSONArray(domain);
-                        updateCursorFromDeviceList();
-                        return;
-                    }
-                } catch (JSONException je) {
-                    Log.e(TAG, je.toString());
-                }
+            mDeviceList = Cache.RestoreDeviceListFromCache(DeviceListActivity.this, domain);
+            if (mDeviceList != null) {
+                updateCursorFromDeviceList();
+                return;
             }
         }
 
@@ -167,7 +155,9 @@ public class DeviceListActivity extends ListActivity {
             @Override
             public void done(final JSONArray portalList, ExoException e) {
                 if (portalList != null) {
-                    // get devices for each portal
+                    // get portals for each domain
+                    Cache.CachePortalList(DeviceListActivity.this, domain, portalList);
+
                     new LoadDevicesTask(getListView().getContext()).execute(portalList);
                 } else {
                     Log.e(TAG, "failed to list portals");
@@ -281,24 +271,12 @@ public class DeviceListActivity extends ListActivity {
             if (exception == null) {
                 mDeviceList = deviceList;
                 updateCursorFromDeviceList();
-
-                // cache device list
                 final SharedPreferences sharedPreferences = PreferenceManager
                         .getDefaultSharedPreferences(DeviceListActivity.this);
                 String domain = sharedPreferences.getString("domain", null);
-                JSONObject domainDeviceLists = null;
-                String domainDevicesJSON = sharedPreferences.getString(DEVICE_CACHE_PREFERENCE_KEY, null);
-                try {
-                    if (domainDevicesJSON != null) {
-                        domainDeviceLists = new JSONObject(domainDevicesJSON);
-                    } else {
-                        domainDeviceLists = new JSONObject();
-                    }
-                    domainDeviceLists.put(domain, deviceList);
-                    sharedPreferences.edit().putString(DEVICE_CACHE_PREFERENCE_KEY, domainDeviceLists.toString()).commit();
-                } catch (JSONException je) {
-                    Log.e(TAG, je.toString());
-                }
+
+                Cache.CacheDeviceList(DeviceListActivity.this, domain, deviceList);
+
             } else {
                 Toast.makeText(getApplicationContext(),
                         String.format("Error fetching devices: %s", exception.getMessage()), Toast.LENGTH_LONG).show();

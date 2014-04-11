@@ -45,3 +45,7 @@ $ git clone git@github.com:exosite-garage/AndroidDemo.git DemoProject
 5.) Commit and push in git
 
 6.) Tag with version number and push that too
+
+### TODOs
+
+- add timestamp to resource last value display. Maybe something like "n weeks/days/hours/minutes ago"

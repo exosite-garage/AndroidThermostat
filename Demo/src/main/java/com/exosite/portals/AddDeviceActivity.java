@@ -37,9 +37,6 @@ public class AddDeviceActivity extends FormActivity {
     EditText mModelEditText;
     Spinner mPortalSpinner;
     Button mAddDeviceButton;
-    View mAddDeviceFormView;
-    View mAddDeviceStatusView;
-    TextView mAddDeviceStatusMessageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,11 +45,10 @@ public class AddDeviceActivity extends FormActivity {
 
         SharedPreferences sharedPreferences = PreferenceManager
                 .getDefaultSharedPreferences(AddDeviceActivity.this);
-
-        try {
-            mPortalList = new JSONArray(sharedPreferences.getString("portal_list", "[]"));
-        } catch (JSONException e) {
-            Log.e(TAG, "portal_list shared preference was not set.");
+        String domain = sharedPreferences.getString("domain", "");
+        mPortalList = Cache.RestorePortalListFromCache(this, domain);
+        if (mPortalList == null) {
+            Log.e(TAG, "no portal list found in cache");
         }
 
         this.setTitle("Add Device");
