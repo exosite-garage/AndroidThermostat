@@ -43,7 +43,7 @@ public class RPC {
     }
 
     public RPC() {
-        mURL = "http://m2.exosite.com/api:v1/rpc/process";
+        mURL = "https://m2.exosite.com/api:v1/rpc/process";
         mTimeout = 5;
     }
 
