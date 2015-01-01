@@ -23,7 +23,7 @@ Running spec on: ee95d26abb3663cd039b89a82ccd1432e0e1061b
 
 Once you have a CIK with the dataports specified above, enter that CIK in the demo app under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports. 
 
-![screenshot of thermostat app](images/screenshot.png)
+![screenshot of thermostat app](images/screenshot.png =250)
 
 To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects. 
 
