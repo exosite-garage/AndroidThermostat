@@ -23,7 +23,7 @@ Running spec on: ee95d26abb3663cd039b89a82ccd1432e0e1061b
 
 Once you have a CIK with the dataports specified above, enter that CIK in the demo app under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports. 
 
-<img src="https://raw.githubusercontent.com/exosite-garage/AndroidExample/master/images/screenshot.png" align="left" width="250" >
+<img src="https://raw.githubusercontent.com/exosite-garage/AndroidExample/master/images/screenshot.png" align="left" width="250" style="padding: 20px">
 
 To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects. 
 
