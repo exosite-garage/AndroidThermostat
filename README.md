@@ -14,7 +14,16 @@ dataports:
       format: float
 ```
 
-Once you have a CIK with the dataports specified above, enter that CIK in the App under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports. 
+You can use Portals to create this device, or Exosite's command line tool [Exoline](https://github.com/exosite/exoline). Here's how to create a temporary device and set it up with the correct schema:
+
+```
+$ exo spec <YOUR-DEVICE-CIK> https://raw.githubusercontent.com/exosite-garage/AndroidExample/master/thermostat.spec --create 
+Running spec on: ee95d26abb3663cd039b89a82ccd1432e0e1061b
+```
+
+Once you have a CIK with the dataports specified above, enter that CIK in the demo app under Settings->Device CIK. Once this is done, you should see data from the temp and setpoint dataports. 
+
+![screenshot of thermostat app](images/screenshot.png)
 
 To change the logo, go to Settings and enter the URL of a 691x135 image. URL shorteners are not yet supported because the app does not yet know how to follow redirects. 
 
@@ -22,8 +31,11 @@ To revert to the Exosite logo, change the URL in settings to an empty string and
 
 ### Build 
 
-This application was built using Android Studio version 0.4.2.
-http://developer.android.com/sdk/installing/studio.html
+This application was built using Android Studio version 1.0.2. Here's how to get Android Studio. 
+
+http://developer.android.com/sdk/index.html
+
+Note that using this project in Eclipse is not yet supported.
 
 1.) Clone the source
 
