@@ -35,7 +35,7 @@ This application was built using Android Studio version 1.0.2. Here's how to get
 
 http://developer.android.com/sdk/index.html
 
-Note that using this project in Eclipse is not yet supported.
+Note that since Eclipse has a different project structure and build environment, using this project in Eclipse may require some manual steps.
 
 1.) Clone the source
 
