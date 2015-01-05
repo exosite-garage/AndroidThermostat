@@ -40,14 +40,14 @@ Note that since Eclipse has a different project structure and build environment,
 1.) Clone the source
 
 ```
-$ git clone git@github.com:exosite-garage/AndroidDemo.git DemoProject
+$ git clone git@github.com:exosite-garage/AndroidThermostat.git
 ```
 
 2.) Set up an Android device for development over USB (enable developer options, enable USB debugging)
 
 3.) Set up PC for debugging (this varies by platform, see http://developer.android.com/tools/device.html)
 
-4.) Open the project with Android Studio (the `DemoProject` folder)
+4.) Open the project with Android Studio (the `AndroidThermostat` folder)
 
 5.) In Android Studio, select Build->Make Project
 
